@@ -1,0 +1,8 @@
+{
+  "days": 7,
+  "events_per_user": 3,
+  "known_user_id": 42,
+  "n_users": 50,
+  "seed": 18790314,
+  "start": "2026-01-01"
+}

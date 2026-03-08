@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv (with cache)
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (locked)
+        run: uv sync --locked --all-groups
+
+      - name: Lint
+        run: uv run --frozen ruff check .
+
+      - name: Format (check)
+        run: uv run --frozen ruff format --check .
+
+      - name: Tests
+        run: uv run --frozen pytest -q
