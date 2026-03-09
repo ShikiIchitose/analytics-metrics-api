@@ -1,5 +1,7 @@
 # METRICS.md
 
+> 日本語版: [METRICS.ja.md](METRICS.ja.md)
+
 ## Purpose
 
 This document defines the meaning and interpretation of the metrics exposed by `analytics-metrics-api`.
