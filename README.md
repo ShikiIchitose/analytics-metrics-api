@@ -4,7 +4,7 @@
 
 An offline-first analytics Metrics API built with FastAPI, DuckDB, and Parquet.
 
-## Overviews
+## Overview
 
 This repository is a small but production-minded backend portfolio project. It exposes a read-only HTTP API over a deterministic synthetic SaaS event dataset, computes predefined analytics metrics such as `dau`, `new_users`, and `conversion_rate`, and returns JSON responses through resource-oriented endpoints like `GET /metrics/{name}` and `GET /users/{user_id}`.
 
@@ -66,6 +66,18 @@ The application reads a local Parquet dataset, queries it through DuckDB, and ex
 - `dau`: Daily Active Users
 - `new_users`: count of users whose first observed event falls in the day
 - `conversion_rate`: among users with signup in the window, fraction who also have checkout in the window
+
+### Why these metrics matter
+
+These metrics are intentionally small in scope, but they map to common product and business questions:
+
+- `dau` is a baseline engagement KPI: “How many users are actively using the product?”
+- `new_users` is an acquisition KPI: “Are we bringing new users into the product?”
+- `conversion_rate` is a funnel-efficiency KPI: “How effectively do signups turn into a downstream value event?”
+
+Together, they provide a minimal analytics view of acquisition, engagement, and conversion.
+
+For a fuller explanation of metric semantics, business meaning, and current limitations, see [METRICS.md](METRICS.md).
 
 ## Architecture at a glance
 

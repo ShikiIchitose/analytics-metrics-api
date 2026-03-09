@@ -73,11 +73,21 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
   - `GET /metrics/{name}`
   - `GET /users/{user_id}`
 
-### v0.1.0 の metrics
+### Metrics included in v0.1.0
 
 - `dau`: Daily Active Users
-- `new_users`: first observed event がその日に属する user 数
-- `conversion_rate`: window 内で signup した user のうち、同じ window 内で checkout も行った割合
+- `new_users`: その日に初めて観測されたユーザー数
+- `conversion_rate`: 対象期間内に `signup` したユーザーのうち、同じ期間内に `checkout` も行ったユーザーの割合
+
+### Why these metrics matter
+
+これらの指標は意図的に小さなスコープに絞っていますが、プロダクト分析やビジネス上の典型的な問いに対応しています。
+
+- `dau` はエンゲージメントのベースラインとなる KPI であり、「何人のユーザーが実際にプロダクトを使っているか？」に答えます。
+- `new_users` は獲得(acquisition)の KPI であり、「新しいユーザーをプロダクトに流入させられているか？」に答えます。
+- `conversion_rate` はファネル効率(funnel efficiency)の KPI であり、「signup が downstream value event にどれだけ効率よく結びついているか？」に答えます。
+
+これらを合わせることで、acquisition・engagement・conversion を捉える最小限の analytics view を提供します。
 
 ## Architecture at a glance
 
