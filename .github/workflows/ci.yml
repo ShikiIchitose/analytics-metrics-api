@@ -37,3 +37,6 @@ jobs:
 
       - name: Tests
         run: uv run --frozen pytest -q
+
+      - name: Static check
+        run: uv run --frozen pyrefly check --output-format=github

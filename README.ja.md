@@ -117,6 +117,8 @@ analytics-metrics-api/
   uv.lock
   README.md
   README.ja.md
+  METRICS.md
+  METRICS.ja.md
   data/
     clean/
       .gitkeep
@@ -145,7 +147,9 @@ analytics-metrics-api/
     test_entities.py
     test_metrics_list.py
     test_metrics_known_value.py
-  .github/workflows/ci.yml
+  .github/
+    workflows/
+      ci.yml
 ```
 
 ## Quickstart
@@ -290,6 +294,28 @@ Golden outputs の再生成:
 ```bash
 uv run python tools/regenerate_golden.py
 ```
+
+## CI
+
+この repository には、offline-first の検証を行うための GitHub Actions workflow が含まれています。
+
+### CI で実行するもの
+
+現在の CI では、次のチェックを実行します。
+
+- `uv run ruff check .`
+- `uv run pytest`
+- `uv run pyrefly check`
+
+### この project に CI を置く理由
+
+この repository における CI の目的は、project を再現しやすくし、レビューしやすく保つことです。
+
+- スタイル上の問題や静的な問題を自動で確認する
+- 外部ネットワークに依存せずにテストを実行する
+- lint や test に加えて、型の整合性も確認する
+
+目的は大がかりな delivery pipeline を作ることではなく、小さな portfolio project の中で、再現性を意識した engineering 上の姿勢を示すことにあります。
 
 ## 意図的な設計判断
 
