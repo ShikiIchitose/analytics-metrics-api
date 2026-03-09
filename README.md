@@ -104,6 +104,9 @@ analytics-metrics-api/
   pyproject.toml
   uv.lock
   README.md
+  README.ja.md
+  METRICS.md
+  METRICS.ja.md
   data/
     clean/
       .gitkeep
@@ -132,7 +135,9 @@ analytics-metrics-api/
     test_entities.py
     test_metrics_list.py
     test_metrics_known_value.py
-  .github/workflows/ci.yml
+  .github/
+    workflows/
+      ci.yml
 ```
 
 ## Quickstart
@@ -277,6 +282,28 @@ Regenerate golden outputs:
 ```bash
 uv run python tools/regenerate_golden.py
 ```
+
+## CI
+
+This repository includes a GitHub Actions workflow for offline-first validation.
+
+### What CI runs
+
+CI currently runs the following checks:
+
+- `uv run ruff check .`
+- `uv run pytest`
+- `uv run pyrefly check`
+
+### Why CI exists in this project
+
+The purpose of CI in this repository is to keep the project reproducible and easy to review:
+
+- style and static issues are checked automatically
+- tests run without external network dependencies
+- type consistency is checked in addition to linting and tests
+
+The goal is not to build a heavy delivery pipeline, but to show reproducible engineering discipline in a small portfolio project.
 
 ## Design choices that are intentional
 
