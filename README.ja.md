@@ -89,6 +89,8 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
 
 これらを合わせることで、acquisition・engagement・conversion を捉える最小限の analytics view を提供します。
 
+metric の定義、実務を想定した場合の意味、現在の制約についての詳しい説明は、[METRICS.ja.md](METRICS.ja.md) を参照してください。
+
 ## Architecture at a glance
 
 ```text
