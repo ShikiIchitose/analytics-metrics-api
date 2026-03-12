@@ -138,7 +138,16 @@ analytics-metrics-api/
   .github/
     workflows/
       ci.yml
+  sql/
+    debug/
+      conversion_rate_window.sql
+      new_users_window.sql
+      dau_window_by_plan.sql
+      dau_window_by_day.sql
+      dau_window_by_country.sql
 ```
+
+`sql/debug/` contains manual validation queries for inspecting metric logic directly in DuckDB against the local Parquet dataset. These files are development aids only and do not replace the application queries implemented in `src/app/warehouse.py`.
 
 ## Quickstart
 

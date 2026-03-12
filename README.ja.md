@@ -16,7 +16,7 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
 このリポジトリを通じて示したいこと:
 
 - **バックエンドの基礎力**: FastAPI による API 実装を通じて、ルーティング、入力検証、ステータスコード設計、エラーハンドリング、型を意識した境界設計、リソース指向の HTTP 設計を扱えること。
-- **データ処理基盤の基礎力**: 再現可能なサンプルデータ生成、DuckDB によるクエリ実行、Parquet を用いたローカルデータ管理、メトリクス定義の安定化、オフライン回帰テストを含む一連の流れを設計・実装できること。
+- **データ処理基盤の基礎力**: 再現可能なサンプルデータ生成、DuckDB によるクエリ実行、Parquet を用いたローカルデータ管理、 metric 定義の安定化、オフライン回帰テストを含む一連の流れを設計・実装できること。
 - **開発運用の基礎力**: `uv` を用いた再現可能な環境構築、offline-first の CI(continuous integration: 継続的インテグレーション)、golden output を用いたテスト運用、明示的な契約に基づく実装によって、小規模でも保守しやすい構成を意識していること。
 
 ### ポートフォリオとしての狙い
@@ -150,7 +150,16 @@ analytics-metrics-api/
   .github/
     workflows/
       ci.yml
+  sql/
+    debug/
+      conversion_rate_window.sql
+      new_users_window.sql
+      dau_window_by_plan.sql
+      dau_window_by_day.sql
+      dau_window_by_country.sql
 ```
+
+`sql/debug/` には、ローカルの Parquet データセットに対して DuckDB で metric のロジックを直接確認するための手動検証用 SQL を置いています。これらのファイルは開発補助用であり、`src/app/warehouse.py` に実装されているアプリケーション本体のクエリを置き換えるものではありません。
 
 ## Quickstart
 
