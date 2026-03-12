@@ -30,6 +30,10 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
 
 大きな demo ではなく、**実務寄りの判断力を小さな成果物で証明する** ための repository です。
 
+### 開発サマリー
+
+このリポジトリの設計意図や改善の流れを日本語でまとめた資料として、[`docs/development-highlights.ja.md`](docs/development-highlights.ja.md) を用意しています。
+
 ## RESTful を意識した設計
 
 この API は、**resource-oriented な HTTP / REST-style design** を意識して設計しています。
