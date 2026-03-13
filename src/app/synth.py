@@ -138,8 +138,49 @@ class SynthParams:
         )
 
 
-def build_events_df(*, params: SynthParams) -> pd.DataFrame:
-    """Build synthetic events DataFrame deterministically (no I/O)."""
+def _to_utc_naive_series(s: pd.Series) -> pd.Series:
+    """Normalize a datetime-like Series to timezone-naive UTC timestamps."""
+    tmp = pd.to_datetime(s, utc=True)
+    # pandas typing: to_datetime can return Timestamp/Series/DatetimeIndex
+    # depending on the input shape. Here we pass a Series, so assert it.
+    assert isinstance(tmp, pd.Series)
+    return tmp.dt.tz_localize(None)
+
+
+def _normalize_events_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply dtypes and deterministic ordering for events."""
+    df = df.copy()
+
+    df["event_id"] = df["event_id"].astype("int64")
+    df["user_id"] = df["user_id"].astype("int32")
+    df["event_name"] = df["event_name"].astype("string")
+    df["country"] = df["country"].astype("string")
+    df["plan"] = df["plan"].astype("string")
+    df["event_time"] = _to_utc_naive_series(df["event_time"])
+
+    # Deterministic lexicographic order: event_time ASC, then event_id ASC.
+    # Use two stable single-column sorts because DataFrame.sort_values(kind=...)
+    # only guarantees the algorithm choice for a single column.
+    df = df.sort_values("event_id", kind="stable")
+    df = df.sort_values("event_time", kind="stable").reset_index(drop=True)
+    return df
+
+
+def _normalize_users_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply dtypes and deterministic ordering for users."""
+    df = df.copy()
+
+    df["user_id"] = df["user_id"].astype("int32")
+    df["country"] = df["country"].astype("string")
+    df["plan"] = df["plan"].astype("string")
+    df["signup_time"] = _to_utc_naive_series(df["signup_time"])
+
+    df = df.sort_values("user_id", kind="stable").reset_index(drop=True)
+    return df
+
+
+def _build_synth_frames(*, params: SynthParams) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build deterministic synthetic events/users DataFrames (no I/O)."""
     rng = np.random.default_rng(params.seed)
 
     user_ids = list(range(1, params.n_users + 1))
@@ -152,7 +193,8 @@ def build_events_df(*, params: SynthParams) -> pd.DataFrame:
     signup_offsets = {uid: int(rng.integers(0, params.days)) for uid in user_ids}
     signup_offsets[params.known_user_id] = 0
 
-    rows: list[dict[str, object]] = []
+    event_rows: list[dict[str, object]] = []
+    user_rows: list[dict[str, object]] = []
     event_id = 1
 
     # For each user, create exactly `events_per_user` events (signup + N-1 others).
@@ -160,12 +202,23 @@ def build_events_df(*, params: SynthParams) -> pd.DataFrame:
         signup_day_off = signup_offsets[uid]
         signup_day = params.start + timedelta(days=signup_day_off)
 
-        signup_minute = int(rng.integers(0, 60))
+        signup_sec = int(rng.integers(0, 24 * 3600))
         signup_dt = datetime.combine(
             signup_day, time(0, 0), tzinfo=timezone.utc
-        ) + timedelta(minutes=signup_minute)
+        ) + timedelta(seconds=signup_sec)
 
-        rows.append(
+        # users dimension row
+        user_rows.append(
+            {
+                "user_id": uid,
+                "signup_time": signup_dt,
+                "country": user_country[uid],
+                "plan": user_plan[uid],
+            }
+        )
+
+        # signup event row
+        event_rows.append(
             {
                 "event_id": event_id,
                 "event_time": signup_dt,
@@ -184,7 +237,7 @@ def build_events_df(*, params: SynthParams) -> pd.DataFrame:
             day = params.start + timedelta(days=day_off)
 
             if day_off == signup_day_off:
-                lower = signup_minute * 60 + 1
+                lower = signup_sec + 1
                 sec = int(rng.integers(lower, 24 * 3600))
             else:
                 sec = int(rng.integers(0, 24 * 3600))
@@ -199,7 +252,7 @@ def build_events_df(*, params: SynthParams) -> pd.DataFrame:
                 seconds=sec
             )
 
-            rows.append(
+            event_rows.append(
                 {
                     "event_id": event_id,
                     "event_time": dt,
@@ -211,48 +264,72 @@ def build_events_df(*, params: SynthParams) -> pd.DataFrame:
             )
             event_id += 1
 
-    df = pd.DataFrame(rows)
-
-    df["event_id"] = df["event_id"].astype("int64")
-    df["user_id"] = df["user_id"].astype("int32")
-    df["event_name"] = df["event_name"].astype("string")
-    df["country"] = df["country"].astype("string")
-    df["plan"] = df["plan"].astype("string")
-
-    tmp = pd.to_datetime(df["event_time"], utc=True)
-    # pyrefly/pandas typing: to_datetime can return Timestamp/Series/DatetimeIndex.
-    assert isinstance(tmp, pd.Series)
-    # Store as UTC TIMESTAMP (timezone-naive) for reproducibility and interoperability.
-    df["event_time"] = tmp.dt.tz_localize(None)
-
-    # Stable sort for determinism.
-    df = df.sort_values(["event_time", "event_id"], kind="mergesort").reset_index(
-        drop=True
-    )
-    return df
+    events_df = _normalize_events_df(pd.DataFrame(event_rows))
+    users_df = _normalize_users_df(pd.DataFrame(user_rows))
+    return events_df, users_df
 
 
-def ensure_events_parquet(*, data_dir: Path, params: SynthParams) -> Path:
-    """Write data/clean/events.parquet.
+def build_events_df(*, params: SynthParams) -> pd.DataFrame:
+    """Build synthetic events DataFrame deterministically (no I/O)."""
+    events_df, _ = _build_synth_frames(params=params)
+    return events_df
+
+
+def build_users_df(*, params: SynthParams) -> pd.DataFrame:
+    """Build synthetic users DataFrame deterministically (no I/O)."""
+    _, users_df = _build_synth_frames(params=params)
+    return users_df
+
+
+def _write_parquet_df(*, df: pd.DataFrame, out_path: Path, table_name: str) -> Path:
+    """Write a DataFrame as Parquet.
 
     Preferred writer: DuckDB (no pyarrow required).
     Fallback: pandas.to_parquet (requires pyarrow or fastparquet).
     """
-    clean_dir = data_dir / "clean"
-    clean_dir.mkdir(parents=True, exist_ok=True)
-    out_path = clean_dir / "events.parquet"
-
-    df = build_events_df(params=params)
-
     try:
         import duckdb  # type: ignore
 
         con = duckdb.connect(database=":memory:")
-        con.register("events_df", df)
-        con.execute("CREATE TABLE events AS SELECT * FROM events_df;")
-        con.execute("COPY events TO ? (FORMAT PARQUET);", [str(out_path)])
+        con.register("tmp_df", df)
+        con.execute(f"CREATE TABLE {table_name} AS SELECT * FROM tmp_df;")
+        con.execute(f"COPY {table_name} TO ? (FORMAT PARQUET);", [str(out_path)])
         con.close()
         return out_path
     except ModuleNotFoundError:
         df.to_parquet(out_path, index=False)
         return out_path
+
+
+def ensure_events_parquet(*, data_dir: Path, params: SynthParams) -> Path:
+    """Write data/clean/events.parquet."""
+    clean_dir = data_dir / "clean"
+    clean_dir.mkdir(parents=True, exist_ok=True)
+    out_path = clean_dir / "events.parquet"
+
+    df = build_events_df(params=params)
+    return _write_parquet_df(df=df, out_path=out_path, table_name="events")
+
+
+def ensure_users_parquet(*, data_dir: Path, params: SynthParams) -> Path:
+    """Write data/clean/users.parquet."""
+    clean_dir = data_dir / "clean"
+    clean_dir.mkdir(parents=True, exist_ok=True)
+    out_path = clean_dir / "users.parquet"
+
+    df = build_users_df(params=params)
+    return _write_parquet_df(df=df, out_path=out_path, table_name="users")
+
+
+def ensure_sample_parquets(*, data_dir: Path, params: SynthParams) -> tuple[Path, Path]:
+    """Write both events.parquet and users.parquet from one deterministic build."""
+    clean_dir = data_dir / "clean"
+    clean_dir.mkdir(parents=True, exist_ok=True)
+
+    events_path = clean_dir / "events.parquet"
+    users_path = clean_dir / "users.parquet"
+
+    events_df, users_df = _build_synth_frames(params=params)
+    _write_parquet_df(df=events_df, out_path=events_path, table_name="events")
+    _write_parquet_df(df=users_df, out_path=users_path, table_name="users")
+    return events_path, users_path

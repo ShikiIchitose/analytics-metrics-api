@@ -4,7 +4,7 @@ import argparse
 from datetime import date
 from pathlib import Path
 
-from app.synth import SynthParams, ensure_events_parquet
+from app.synth import SynthParams, ensure_sample_parquets
 
 
 def _positive_int(s: str) -> int:
@@ -87,8 +87,12 @@ def main() -> int:
         known_user_id=int(args.known_user_id),
     )
 
-    ensure_events_parquet(data_dir=out_data_dir, params=params)
-    print(f"Wrote {out_data_dir / 'clean' / 'events.parquet'}")
+    events_path, users_path = ensure_sample_parquets(
+        data_dir=out_data_dir,
+        params=params,
+    )
+    print(f"Wrote {events_path}")
+    print(f"Wrote {users_path}")
     return 0
 
 
