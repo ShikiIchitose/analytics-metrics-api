@@ -123,11 +123,8 @@ analytics-metrics-api/
   README.ja.md
   METRICS.md
   METRICS.ja.md
-  data/
-    clean/
-      .gitkeep
-  warehouse/
-    warehouse.duckdb
+  docs/
+    development-highlights.ja.md
   src/
     app/
       __init__.py
@@ -185,11 +182,15 @@ uv run python scripts/generate_sample.py \
   --known_user_id 42
 ```
 
-生成物:
+生成されるファイル:
 
 ```text
 data/clean/events.parquet
+data/clean/users.parquet
 ```
+
+`users.parquet` は、現時点ではサンプル用の user dimension snapshot として生成しています。  
+現在の MVP では、API の user entity は引き続き `events.parquet` 由来の情報を標準の参照元として扱います。
 
 ### 3. API を起動する
 

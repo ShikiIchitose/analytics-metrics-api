@@ -107,11 +107,8 @@ analytics-metrics-api/
   README.ja.md
   METRICS.md
   METRICS.ja.md
-  data/
-    clean/
-      .gitkeep
-  warehouse/
-    warehouse.duckdb
+  docs/
+    development-highlights.ja.md
   src/
     app/
       __init__.py
@@ -173,7 +170,11 @@ This writes:
 
 ```text
 data/clean/events.parquet
+data/clean/users.parquet
 ```
+
+`users.parquet` is currently generated as a sample user-dimension snapshot.  
+The API still treats events-derived user entities as the default source of truth in the current MVP.
 
 ### 3. Start the API
 
