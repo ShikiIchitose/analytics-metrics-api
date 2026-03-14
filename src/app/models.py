@@ -8,8 +8,9 @@ from pathlib import Path
 class AppConfig:
     """Runtime configuration injected into the app.
 
-    data_dir must contain:
-      - clean/events.parquet
+    data_dir contains:
+      required: clean/events.parquet
+      optional: clean/users.parquet
     """
 
     data_dir: Path
@@ -17,3 +18,7 @@ class AppConfig:
     @property
     def events_path(self) -> Path:
         return self.data_dir / "clean" / "events.parquet"
+
+    @property
+    def users_path(self) -> Path:
+        return self.data_dir / "clean" / "users.parquet"

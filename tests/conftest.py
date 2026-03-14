@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.models import AppConfig
-from app.synth import SynthParams, ensure_events_parquet
+from app.synth import SynthParams, ensure_sample_parquets
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +26,7 @@ def dataset_root(
 ) -> Path:
     root = tmp_path_factory.mktemp("dataset")
     data_dir = root / "data"
-    ensure_events_parquet(data_dir=data_dir, params=golden_params)
+    ensure_sample_parquets(data_dir=data_dir, params=golden_params)
     return root
 
 

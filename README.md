@@ -142,6 +142,7 @@ analytics-metrics-api/
       dau_window_by_plan.sql
       dau_window_by_day.sql
       dau_window_by_country.sql
+      users_parquet_override_debug.sql
 ```
 
 `sql/debug/` contains manual validation queries for inspecting metric logic directly in DuckDB against the local Parquet dataset. These files are development aids only and do not replace the application queries implemented in `src/app/warehouse.py`.
@@ -173,8 +174,9 @@ data/clean/events.parquet
 data/clean/users.parquet
 ```
 
-`users.parquet` is currently generated as a sample user-dimension snapshot.  
-The API still treats events-derived user entities as the default source of truth in the current MVP.
+Sample generation writes both `data/clean/events.parquet` and `data/clean/users.parquet`.
+
+`GET /users/{user_id}` prefers `data/clean/users.parquet` when present. If `users.parquet` is absent, or the requested user is not found there, the API falls back to values derived from the earliest event row in `data/clean/events.parquet`.
 
 ### 3. Start the API
 
@@ -345,14 +347,13 @@ The tests intentionally compare the stable parts of responses so implementation 
 
 This repository is intentionally narrow in scope.
 
-Not included in v0.1.0:
+Not included in the current v0.1.x series:
 
 - authentication / authorization
 - caching
 - background jobs / orchestration
 - multi-tenant design
 - write endpoints (`POST`, `PUT`, `PATCH`, `DELETE`)
-- full `users.parquet` dimension as the default source of truth
 
 These are valid next steps, but not necessary to demonstrate the core engineering signal this portfolio repo is meant to show.
 
@@ -370,7 +371,6 @@ A recruiter or hiring manager should be able to scan this repository and answer 
 Possible follow-up PRs:
 
 - add richer metric contracts and additional KPIs
-- add `users.parquet` and prefer it over events-derived user entities
 - add dbt-based transformations
 - add a minimal TypeScript client or UI
 - expand metric documentation and data contract checks

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.models import AppConfig
-from app.synth import SynthParams, ensure_events_parquet
+from app.synth import SynthParams, ensure_sample_parquets
 
 
 def main() -> int:
@@ -34,7 +34,7 @@ def main() -> int:
 
     cache_root = repo_root / "tests" / ".cache" / "dataset"
     data_dir = cache_root / "data"
-    ensure_events_parquet(data_dir=data_dir, params=params)
+    ensure_sample_parquets(data_dir=data_dir, params=params)
 
     app = create_app(AppConfig(data_dir=data_dir))
     client = TestClient(app)
