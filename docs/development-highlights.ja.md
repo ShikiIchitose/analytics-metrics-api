@@ -196,6 +196,29 @@ API 側の `/users/{user_id}` を将来的に `users.parquet` 優先へ拡張し
 **示せるスキル**  
 Synthetic data design, Parquet data modeling, deterministic test maintenance, golden-output workflow, incremental backend development
 
+### 2026/3/14 — v0.1.2 `/users/{user_id}` の `users.parquet` 優先化と fallback 整備
+
+**概要**  
+`/users/{user_id}` の user entity 解決ロジックを更新し、`data/clean/users.parquet` が存在する場合はそちらを優先して参照し、存在しない場合や対象ユーザーが見つからない場合は `events.parquet` 由来の first-seen 値へ fallback する構成にしました。  
+あわせて `models.py` / `warehouse.py` を更新し、`tests/conftest.py` と `tools/regenerate_golden.py` も `ensure_sample_parquets()` ベースに揃えました。手動確認用として `sql/debug/users_parquet_override_debug.sql` も追加し、`users.parquet` 優先参照と `events.parquet` への fallback の両方をローカルで検証できるようにしています。
+
+**この更新の意図**  
+前回の更新では、sample dataset generation 側に `users.parquet` を追加し、user dimension を用意しました。  
+今回はその次の段階として、API 側でも fact table である `events.parquet` と user dimension である `users.parquet` の役割を分け、より自然な参照経路に整理しました。
+
+同時に、単に取得元を差し替えるだけでなく、`users.parquet` が無い場合でも既存の API を壊さずに使えるよう fallback を残し、tests / golden regeneration / README / debug SQL も含めて整合を取っています。  
+個人開発でも、データモデルの改善を public interface を壊さず段階的に導入し、その変更をテストと文書で支える流れを意識しています。
+
+**見てほしい点**
+
+- `events.parquet` と `users.parquet` の役割を分け、user entity の参照経路を段階的に改善していること
+- 既存の `/users/{user_id}` のインターフェースを維持したまま、内部実装だけを後方互換的に改善していること
+- `users.parquet` 優先と `events.parquet` fallback の両方を手動確認・pytest の両面で検証していること
+- 実装変更だけでなく、fixture、golden regeneration、README、debug SQL まで含めて一貫して更新していること
+
+**示せるスキル**  
+Backend evolution, DuckDB / Parquet data modeling, backward-compatible API changes, fallback design, test fixture maintenance, golden-output workflow, SQL-based validation, documentation hygiene
+
 ---
 
 ## この文書で見ていただきたいポイント

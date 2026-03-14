@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import duckdb
 
@@ -32,12 +32,81 @@ def _connect() -> duckdb.DuckDBPyConnection:
     return con
 
 
-def _register_events_view(con: duckdb.DuckDBPyConnection, events_path: Path) -> None:
+def _register_parquet_view(
+    con: duckdb.DuckDBPyConnection, *, view_name: str, parquet_path: Path
+) -> None:
     # DuckDB limitation: CREATE VIEW cannot be prepared, so we can't use '?' here.
-    path = str(events_path).replace("'", "''")  # escape for SQL string literal
+    # `view_name` is only passed from internal fixed strings ("events", "users").
+    path = str(parquet_path).replace("'", "''")  # escape for SQL string literal
     con.execute(
-        f"CREATE OR REPLACE VIEW events AS SELECT * FROM read_parquet('{path}');"
+        f"CREATE OR REPLACE VIEW {view_name} AS SELECT * FROM read_parquet('{path}');"
     )
+
+
+def _register_events_view(con: duckdb.DuckDBPyConnection, events_path: Path) -> None:
+    _register_parquet_view(con, view_name="events", parquet_path=events_path)
+
+
+def _register_users_view(con: duckdb.DuckDBPyConnection, users_path: Path) -> None:
+    _register_parquet_view(con, view_name="users", parquet_path=users_path)
+
+
+def _ts_to_utc_z(ts: datetime) -> str:
+    if getattr(ts, "tzinfo", None) is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _build_user_entity(
+    *, uid: int, ts: datetime, country: str, plan: str
+) -> dict[str, Any]:
+    return {
+        "user_id": uid,
+        "signup_time": _ts_to_utc_z(ts),
+        "country": country,
+        "plan": plan,
+    }
+
+
+def _query_user_entity_from_users(
+    con: duckdb.DuckDBPyConnection, *, user_id: int
+) -> dict[str, Any] | None:
+    sql = """
+    SELECT user_id, signup_time, country, plan
+    FROM users
+    WHERE user_id = ?
+    LIMIT 1
+    """
+    row = cast(
+        tuple[int, datetime, str, str] | None,
+        con.execute(sql, [user_id]).fetchone(),
+    )
+    if row is None:
+        return None
+
+    uid, ts, country, plan = row
+    return _build_user_entity(uid=uid, ts=ts, country=country, plan=plan)
+
+
+def _query_user_entity_from_events(
+    con: duckdb.DuckDBPyConnection, *, user_id: int
+) -> dict[str, Any] | None:
+    sql = """
+    SELECT user_id, event_time, country, plan
+    FROM events
+    WHERE user_id = ?
+    ORDER BY event_time ASC, event_id ASC
+    LIMIT 1
+    """
+    row = cast(
+        tuple[int, datetime, str, str] | None,
+        con.execute(sql, [user_id]).fetchone(),
+    )
+    if row is None:
+        return None
+
+    uid, ts, country, plan = row
+    return _build_user_entity(uid=uid, ts=ts, country=country, plan=plan)
 
 
 def count_events_total(*, cfg: AppConfig) -> int:
@@ -113,29 +182,15 @@ def query_dau(
 
 def query_user_entity(*, cfg: AppConfig, user_id: int) -> dict[str, Any] | None:
     con = _connect()
+
+    if cfg.users_path.exists():
+        _register_users_view(con, cfg.users_path)
+        user = _query_user_entity_from_users(con, user_id=user_id)
+        if user is not None:
+            return user
+
     _register_events_view(con, cfg.events_path)
-
-    sql = """
-    SELECT user_id, event_time, country, plan
-    FROM events
-    WHERE user_id = ?
-    ORDER BY event_time ASC, event_id ASC
-    LIMIT 1
-    """
-    row = con.execute(sql, [user_id]).fetchone()
-    if row is None:
-        return None
-
-    uid, ts, country, plan = row
-    if getattr(ts, "tzinfo", None) is None:
-        ts = ts.replace(tzinfo=timezone.utc)
-    iso = ts.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-    return {
-        "user_id": int(uid),
-        "signup_time": iso,
-        "country": str(country),
-        "plan": str(plan),
-    }
+    return _query_user_entity_from_events(con, user_id=user_id)
 
 
 def query_new_users(
@@ -179,12 +234,20 @@ def query_conversion_rate(*, cfg: AppConfig, start: date, end: date) -> dict[str
       WHERE event_name = 'checkout' AND event_time >= ? AND event_time < ?
     )
     SELECT
-      (SELECT COUNT(*) FROM (SELECT user_id FROM signup_users INTERSECT SELECT user_id FROM checkout_users)) AS numerator,
+      (
+        SELECT COUNT(*)
+        FROM (
+          SELECT user_id FROM signup_users
+          INTERSECT
+          SELECT user_id FROM checkout_users
+        )
+      ) AS numerator,
       (SELECT COUNT(*) FROM signup_users) AS denominator
     """
     row = con.execute(sql, [start_ts, end_excl, start_ts, end_excl]).fetchone()
     if row is None:
         raise RuntimeError("conversion_rate query returned no rows (unexpected).")
+
     num, denom = row
     num_i = int(num)
     denom_i = int(denom)
