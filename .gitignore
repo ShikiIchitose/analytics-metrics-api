@@ -62,10 +62,14 @@ htmlcov/
 # Local project-specific files (do not commit)
 # --------------------------------------------------------------------
 tests/.cache/
-data/
-warehouse/
-*.parquet
-*.duckdb
+
+# keep generated data ignored by default
+data/**
+
+# but keep the demo dataset tracked for deployment
+!data/clean/
+!data/clean/events.parquet
+!data/clean/users.parquet
 
 # Scratch / temp
 scratch/
