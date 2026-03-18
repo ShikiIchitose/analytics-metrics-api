@@ -117,6 +117,10 @@ analytics-metrics-api/
       metrics_catalog.py
       models.py
       synth.py
+      static/
+        index.html
+        styles.css
+        app.js
   scripts/
     generate_sample.py
   tools/
@@ -132,6 +136,7 @@ analytics-metrics-api/
     test_entities.py
     test_metrics_list.py
     test_metrics_known_value.py
+    test_root_page.py
   .github/
     workflows/
       ci.yml
@@ -263,6 +268,22 @@ curl "http://127.0.0.1:8000/users/42"
 }
 ```
 
+### 5. Open the browser demo
+
+A minimal browser-based demo UI is available at:
+
+```text
+http://127.0.0.1:8000/
+```
+
+This page is intentionally thin. It exists as a small demo surface for the existing API and does not replace the backend/data-focused design of the project.
+
+You can still use the repository primarily through:
+
+- `curl`
+- FastAPI docs at `/docs`
+- offline tests with `pytest`
+
 ## Testing
 
 This repository is designed to be **offline-first**.
@@ -280,6 +301,7 @@ uv run pytest
 - `GET /users/{user_id}` returns stable known output for a fixed user
 - `GET /metrics` returns a stable catalog structure
 - `GET /metrics/dau` returns known expected rows for a fixed window
+- `GET /` returns `200` and serves the demo page with linked static assets
 
 ### Testing design notes
 

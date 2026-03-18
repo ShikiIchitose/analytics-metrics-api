@@ -219,6 +219,29 @@ Synthetic data design, Parquet data modeling, deterministic test maintenance, go
 **示せるスキル**  
 Backend evolution, DuckDB / Parquet data modeling, backward-compatible API changes, fallback design, test fixture maintenance, golden-output workflow, SQL-based validation, documentation hygiene
 
+### 2026/3/18 — v0.1.3 デモUIの追加と browser demo 導線の整備
+
+**概要**  
+`main.py` に root/static 配信を追加し、`GET /` で開ける最小の browser demo UI を導入しました。  
+あわせて `src/app/static/index.html`、`styles.css`、`app.js` を追加し、既存の `GET /metrics/{name}` と `GET /users/{user_id}` をブラウザから試せるようにしました。さらに `tests/test_root_page.py` を追加し、`/` が `200` を返し、demo page から静的 asset が参照されていることを最小 smoke test として確認できるようにしました。
+
+**この更新の意図**  
+今回の UI は本命ではなく、既存 API を browser から触って理解しやすくするための薄い demo surface として位置づけています。  
+本リポジトリの主役は引き続き backend / data design であり、UI 側には業務ロジックを持たせず、既存 API contract を変えないまま公開導線だけを強化しました。  
+その上で、plain HTML / CSS / JavaScript による最小実装として、`fetch()` による API 呼び出し、DOM 更新による結果表示、HTTP error の可視化までを一通りつなぎ、README や screenshot で見せやすい状態を整えています。
+
+**見てほしい点**
+
+- `GET /` と `/static` を app factory の中で最小拡張として追加していること
+- 既存の metrics / user lookup API をそのまま利用し、UI 側で業務ロジックを持たせていないこと
+- plain HTML / CSS / JavaScript で最小の browser demo を構成し、`fetch()` と DOM 更新で API の結果を可視化していること
+- 成功時だけでなく、422 / 404 / request failure も browser 上で確認できること
+- UI 追加後も `pytest` と最小 smoke test により既存 contract を保ちながら進めていること
+- 仮UIを `static/` に隔離し、将来に backend 側へ悪影響を残しにくい構成にしていること
+
+**示せるスキル**  
+FastAPI app extension, static asset serving, basic HTML / CSS / JavaScript, fetch-based API integration, DOM manipulation, browser-based API demo design, smoke testing, backward-compatible iteration, documentation hygiene
+
 ---
 
 ## この文書で見ていただきたいポイント
