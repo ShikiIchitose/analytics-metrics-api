@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .metrics_catalog import METRICS, GroupBy, list_metrics, metric_definition
@@ -18,7 +20,7 @@ from .warehouse import (
     query_user_entity,
 )
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.3"
 DATASET_ID = "synthetic_saas_v0"
 
 
@@ -37,6 +39,13 @@ class HealthResponse(BaseModel):
 
 def create_app(cfg: AppConfig) -> FastAPI:
     app = FastAPI(title="analytics-metrics-API", version=APP_VERSION)
+
+    static_dir = Path(__file__).parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def demo_index() -> FileResponse:
+        return FileResponse(static_dir / "index.html")
 
     @app.get("/health", response_model=HealthResponse, status_code=200)
     def health() -> HealthResponse:

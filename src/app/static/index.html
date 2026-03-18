@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Analytics Metrics API Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+    <main class="page">
+        <header class="page-header">
+            <p class="eyebrow">Minimal browser demo for the existing FastAPI API</p>
+            <h1>Analytics Metrics API Demo</h1>
+            <p class="lead">
+                Thin UI only. Backend and data design remain the primary artifact.
+            </p>
+        </header>
+
+        <section class="card" aria-labelledby="metric-runner-title">
+            <h2 id="metric-runner-title">Metric runner</h2>
+
+            <form id="metric-form" class="form-grid">
+                <label for="metric">
+                    Metric
+                    <select id="metric" name="metric">
+                        <option value="dau" selected>dau</option>
+                        <option value="new_users">new_users</option>
+                        <option value="conversion_rate">conversion_rate</option>
+                    </select>
+                </label>
+
+                <label for="start">
+                    Start date
+                    <input id="start" name="start" type="date" value="2026-01-01" required />
+                </label>
+
+                <label for="end">
+                    End date
+                    <input id="end" name="end" type="date" value="2026-01-07" required />
+                </label>
+
+                <label for="group_by">
+                    Group by
+                    <select id="group_by" name="group_by">
+                        <option value="">(empty)</option>
+                        <option value="day" selected>day</option>
+                        <option value="country">country</option>
+                        <option value="plan">plan</option>
+                    </select>
+                </label>
+
+                <label for="limit">
+                    Limit
+                    <input id="limit" name="limit" type="number" min="1" max="1000" step="1" value="100" required />
+                </label>
+
+                <div class="button-wrap">
+                    <button type="submit">Run metric</button>
+                </div>
+            </form>
+
+            <div class="result-block">
+                <p class="result-label">Request URL</p>
+                <pre id="metric-request" class="mono muted">Not run yet.</pre>
+            </div>
+
+            <div class="result-block">
+                <p class="result-label">Status</p>
+                <div id="metric-status" class="status muted">Idle</div>
+            </div>
+
+            <div class="result-block">
+                <p class="result-label">Warnings</p>
+                <div id="metric-warnings" class="messages muted">None</div>
+            </div>
+
+            <div class="result-block">
+                <p class="result-label">Result</p>
+                <div id="metric-result" class="panel muted">No result yet.</div>
+            </div>
+
+            <div class="result-block">
+                <details>
+                    <summary>Raw response</summary>
+                    <pre id="metric-raw" class="mono muted">Not run yet.</pre>
+                </details>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="user-lookup-title">
+            <h2 id="user-lookup-title">User lookup</h2>
+
+            <form id="user-form" class="form-grid">
+                <label for="user_id">
+                    User ID
+                    <input id="user_id" name="user_id" type="number" min="1" step="1" value="42" required />
+                </label>
+
+                <div class="button-wrap">
+                    <button type="submit">Lookup user</button>
+                </div>
+            </form>
+
+            <div class="result-block">
+                <p class="result-label">Request URL</p>
+                <pre id="user-request" class="mono muted">Not run yet.</pre>
+            </div>
+
+            <div class="result-block">
+                <p class="result-label">Status</p>
+                <div id="user-status" class="status muted">Idle</div>
+            </div>
+
+            <div class="result-block">
+                <p class="result-label">User</p>
+                <div id="user-result" class="panel muted">No result yet.</div>
+            </div>
+
+            <div class="result-block">
+                <details>
+                    <summary>Raw response</summary>
+                    <pre id="user-raw" class="mono muted">Not run yet.</pre>
+                </details>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

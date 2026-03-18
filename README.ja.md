@@ -133,6 +133,10 @@ analytics-metrics-api/
       metrics_catalog.py
       models.py
       synth.py
+      static/
+        index.html
+        styles.css
+        app.js
   scripts/
     generate_sample.py
   tools/
@@ -148,6 +152,7 @@ analytics-metrics-api/
     test_entities.py
     test_metrics_list.py
     test_metrics_known_value.py
+    test_root_page.py
   .github/
     workflows/
       ci.yml
@@ -158,6 +163,7 @@ analytics-metrics-api/
       dau_window_by_plan.sql
       dau_window_by_day.sql
       dau_window_by_country.sql
+      users_parquet_override_debug.sql
 ```
 
 `sql/debug/` には、ローカルの Parquet データセットに対して DuckDB で metric のロジックを直接確認するための手動検証用 SQL を置いています。これらのファイルは開発補助用であり、`src/app/warehouse.py` に実装されているアプリケーション本体のクエリを置き換えるものではありません。
@@ -278,6 +284,22 @@ curl "http://127.0.0.1:8000/users/42"
 }
 ```
 
+### 5. ブラウザデモを開く
+
+最小のブラウザベースのデモUIを次で利用できます。
+
+```text
+http://127.0.0.1:8000/
+```
+
+このページは意図的に薄い構成にしています。既存 API を試すための小さなデモ導線であり、このリポジトリの中心である backend / data 設計を置き換えるものではありません。
+
+引き続き、このリポジトリは主に次の方法で利用できます。
+
+- `curl`
+- `/docs` の FastAPI ドキュメント
+- `pytest` によるオフラインテスト
+
 ## Testing
 
 この repository は **offline-first** を前提にしています。
@@ -295,6 +317,7 @@ uv run pytest
 - `GET /users/{user_id}` が固定 user に対して stable な known output を返す
 - `GET /metrics` が stable な catalog structure を返す
 - `GET /metrics/dau` が固定 window に対して known expected rows を返す
+- `GET /` が `200` を返し、`/static` 配下の asset を参照するデモページを配信すること
 
 ### Testing design notes
 

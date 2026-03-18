@@ -7,7 +7,7 @@ def test_health_ok(client) -> None:
     j = r.json()
 
     assert j["status"] == "ok"
-    assert j["version"] == "0.1.0"
+    assert j["version"] == "0.1.3"
     assert j["dataset"] == "synthetic_saas_v0"
 
     wh = j["warehouse"]
