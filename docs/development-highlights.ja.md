@@ -242,6 +242,27 @@ Backend evolution, DuckDB / Parquet data modeling, backward-compatible API chang
 **示せるスキル**  
 FastAPI app extension, static asset serving, basic HTML / CSS / JavaScript, fetch-based API integration, DOM manipulation, browser-based API demo design, smoke testing, backward-compatible iteration, documentation hygiene
 
+### 2026/3/22 — v0.2.0 job系 read-only resource の追加
+
+**概要**  
+`job_runs.parquet` を新たな基準データセットとして導入し、`GET /jobs/runs` および `GET /jobs/{job_name}/summary` に対応する read-only job API の土台を追加しました。  
+あわせて `src/app/jobs_catalog.py` を追加し、sample generator 側で固定 job catalog から再現可能な job run data を生成できるようにしました。さらに `sql/debug/job/` 配下に手動確認用 SQL と DuckDB CLI(command-line interface: コマンドラインインターフェース) helper を整理し、job run 一覧と one-job summary の列構成・集計形を SQL レベルで独立確認できるようにしました。
+
+**この更新の意図**  
+今回の変更は、既存の analytics metrics API(分析API) を大きく作り替えるものではなく、read-only な API resource(API上の資源単位) を小さく追加して設計の幅を広げることを目的としています。  
+特に、metrics に限らない operational read resource(運用寄りの参照用 resource) を Parquet + DuckDB + FastAPI でどう切り出すか、また API 実装前に debug SQL で返却形を固めてから `warehouse.py` へ移植する流れを通じて、実装・検証・説明の接続をより明示的にしました。
+
+**見てほしい点**
+
+- `job_runs.parquet` を `events.parquet` / `users.parquet` に続く第3の dataset として段階的に導入していること
+- `GET /jobs/runs` と `GET /jobs/{job_name}/summary` という resource-oriented な read-only endpoint を追加していること
+- `duration_sec` や `schedule_delay_sec` のような派生値を保存列ではなく SQL / API 側で計算していること
+- `sql/debug/job/` と CLI helper を分離し、pure SQL と DuckDB CLI command の責務を整理していること
+- 実装前に手動確認用 SQL で列構成・集計形を固め、`warehouse.py` に移植しやすい形を作っていること
+
+**示せるスキル**  
+Backend evolution, resource-oriented API design, DuckDB / Parquet data modeling, operational read API design, SQL-based validation, CLI workflow design, documentation hygiene
+
 ---
 
 ## この文書で見ていただきたいポイント

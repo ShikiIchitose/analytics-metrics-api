@@ -42,6 +42,8 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
   - `GET /health`
   - `GET /metrics`
   - `GET /metrics/{name}`
+  - `GET /jobs/runs`
+  - `GET /jobs/{job_name}/summary`
   - `GET /users/{user_id}`
 - resource identity は path parameter で表す
   - `{name}`
@@ -59,22 +61,31 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
 
 ## このアプリがやること
 
-アプリはローカルの Parquet dataset を読み、DuckDB で query を実行し、metrics catalog と user entity を JSON API として返します。
+このアプリケーションは、ローカルの Parquet dataset を DuckDB で問い合わせ、read-only の小さな analytics API(分析API) として公開します。
 
-### 現在の MVP scope
+現在は次を提供します。
 
-- Dataset: deterministic な synthetic SaaS-style events
-  - `signup`
-  - `login`
-  - `checkout`
-  - `cancel`
-- Storage: `data/clean/events.parquet`
+- `GET /metrics/{name}` による predefined analytics metrics
+- `GET /users/{user_id}` による user entity lookup
+- `GET /jobs/runs` および `GET /jobs/{job_name}/summary` による lightweight な job-run resource
+
+### 現在の MVP 範囲
+
+- Dataset:
+  - deterministic な synthetic SaaS-style event data（`signup`, `login`, `checkout`, `cancel`）
+  - 固定 job catalog に基づく deterministic な synthetic job-run data
+- Storage:
+  - `data/clean/events.parquet`
+  - `data/clean/users.parquet`
+  - `data/clean/job_runs.parquet`
 - Query engine: DuckDB
 - API framework: FastAPI
-- Main endpoints:
+- 主な endpoint:
   - `GET /health`
   - `GET /metrics`
   - `GET /metrics/{name}`
+  - `GET /jobs/runs`
+  - `GET /jobs/{job_name}/summary`
   - `GET /users/{user_id}`
 
 ### Metrics included in v0.1.0
@@ -95,6 +106,24 @@ deterministic な synthetic SaaS event dataset をローカルに生成し、Duc
 
 metric の定義、実務を想定した場合の意味、現在の制約についての詳しい説明は、[METRICS.ja.md](METRICS.ja.md) を参照してください。
 
+### v0.2.0 で追加した job resource
+
+v0.2.0 では、`data/clean/job_runs.parquet` を基盤とする小さな read-only job layer を追加しました。
+
+追加した job resource は意図的に lightweight なものです。
+
+- `GET /jobs/runs`
+  - 指定した date window 内の job run 一覧を返します
+  - `job_name` と `status` による optional filter をサポートします
+  - `duration_sec` や `schedule_delay_sec` のような derived field を返します
+
+- `GET /jobs/{job_name}/summary`
+  - 指定した date window 内で、1つの job に関する aggregate statistics を返します
+  - count, rate, average に加え、filtered window 内での latest scheduled run に基づく `latest_*` fields を含みます
+
+これは scheduler や orchestration system ではありません。  
+Parquet-backed query modeling、resource-oriented API design、そして SQL と API の対応関係を示すためのコンパクトな operational read layer です。
+
 ## Architecture at a glance
 
 ```text
@@ -108,6 +137,7 @@ Synthetic generator -> Parquet dataset -> DuckDB queries -> FastAPI endpoints ->
 - `src/app/metrics_catalog.py` — metric definitions / allow-lists
 - `src/app/models.py` — runtime config
 - `src/app/synth.py` — deterministic synthetic dataset generation
+- `src/app/jobs_catalog.py` — sample generation に使う固定 job 定義
 - `scripts/generate_sample.py` — sample dataset generation CLI
 - `tools/write_golden_params.py` — golden parameter file generator
 - `tools/regenerate_golden.py` — golden output regeneration
@@ -133,6 +163,7 @@ analytics-metrics-api/
       metrics_catalog.py
       models.py
       synth.py
+      jobs_catalog.py
       static/
         index.html
         styles.css
@@ -164,6 +195,18 @@ analytics-metrics-api/
       dau_window_by_day.sql
       dau_window_by_country.sql
       users_parquet_override_debug.sql
+      job/
+        job_setup.sql
+        job_runs_window.sql
+        job_summary_by_name.sql
+        job_runs_overview_by_job.sql
+        cli/
+          run_job_summary_by_name_line.duckdb
+          run_job_summary_by_name_csv.duckdb
+          run_job_runs_window.duckdb
+          run_job_runs_overview_by_job.duckdb
+        out/
+          .gitkeep
 ```
 
 `sql/debug/` には、ローカルの Parquet データセットに対して DuckDB で metric のロジックを直接確認するための手動検証用 SQL を置いています。これらのファイルは開発補助用であり、`src/app/warehouse.py` に実装されているアプリケーション本体のクエリを置き換えるものではありません。
@@ -193,6 +236,7 @@ uv run python scripts/generate_sample.py \
 ```text
 data/clean/events.parquet
 data/clean/users.parquet
+data/clean/job_runs.parquet
 ```
 
 サンプルデータ生成では、`data/clean/events.parquet` と `data/clean/users.parquet` の両方を出力します。
@@ -223,6 +267,13 @@ DAU by day:
 
 ```bash
 curl "http://127.0.0.1:8000/metrics/dau?start=2026-01-01&end=2026-01-07&group_by=day&limit=365"
+```
+
+Job runs:
+
+```bash
+curl "http://127.0.0.1:8000/jobs/runs?start=2026-01-01&end=2026-01-07&limit=100"
+curl "http://127.0.0.1:8000/jobs/daily_ingest/summary?start=2026-01-01&end=2026-01-07"
 ```
 
 User entity:
