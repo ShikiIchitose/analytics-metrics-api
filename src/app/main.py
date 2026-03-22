@@ -16,12 +16,16 @@ from .warehouse import (
     count_events_total,
     query_conversion_rate,
     query_dau,
+    query_job_runs,
+    query_job_summary,
     query_new_users,
     query_user_entity,
 )
 
-APP_VERSION = "0.1.3"
+APP_VERSION = "0.2.0"
 DATASET_ID = "synthetic_saas_v0"
+
+JobRunStatus = Literal["success", "failed"]
 
 
 class HealthWarehouse(BaseModel):
@@ -161,6 +165,72 @@ def create_app(cfg: AppConfig) -> FastAPI:
             }
 
         raise HTTPException(status_code=500, detail="Metric not implemented")
+
+    @app.get("/jobs/runs")
+    def get_job_runs(
+        start: Annotated[date, Query(description="Start date (inclusive)")],
+        end: Annotated[date, Query(description="End date (inclusive)")],
+        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+        job_name: Annotated[
+            str | None, Query(description="Optional exact job_name filter")
+        ] = None,
+        status: Annotated[
+            JobRunStatus | None, Query(description="Optional status filter")
+        ] = None,
+    ) -> dict:
+        try:
+            rows = query_job_runs(
+                cfg=cfg,
+                start=start,
+                end=end,
+                limit=limit,
+                job_name=job_name,
+                status=status,
+            )
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=503, detail="job_runs dataset not available"
+            )
+
+        return {
+            "data": {"rows": rows},
+            "meta": {
+                "dataset": DATASET_ID,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "limit": limit,
+                "job_name": job_name,
+                "status": status,
+                "returned_rows": len(rows),
+            },
+        }
+
+    @app.get("/jobs/{job_name}/summary")
+    def get_job_summary(
+        job_name: str,
+        start: Annotated[date, Query(description="Start date (inclusive)")],
+        end: Annotated[date, Query(description="End date (inclusive)")],
+    ) -> dict:
+        try:
+            summary = query_job_summary(
+                cfg=cfg,
+                start=start,
+                end=end,
+                job_name=job_name,
+            )
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=503, detail="job_runs dataset not available"
+            )
+
+        return {
+            "data": summary,
+            "meta": {
+                "dataset": DATASET_ID,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
+        }
 
     @app.get("/users/{user_id}")
     def get_user(user_id: int) -> dict:

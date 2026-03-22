@@ -11,6 +11,7 @@ class AppConfig:
     data_dir contains:
       required: clean/events.parquet
       optional: clean/users.parquet
+      optional: clean/job_runs.parquet
     """
 
     data_dir: Path
@@ -22,3 +23,7 @@ class AppConfig:
     @property
     def users_path(self) -> Path:
         return self.data_dir / "clean" / "users.parquet"
+
+    @property
+    def job_runs_path(self) -> Path:
+        return self.data_dir / "clean" / "job_runs.parquet"

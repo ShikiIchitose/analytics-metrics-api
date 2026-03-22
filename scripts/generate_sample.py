@@ -19,7 +19,7 @@ def _positive_int(s: str) -> int:
 
 def _parse_cli_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Generate deterministic synthetic events.parquet (v0.1.0)."
+        description="Generate deterministic synthetic events.parquet (v0.2.0)."
     )
     p.add_argument(
         "--seed",
@@ -91,8 +91,12 @@ def main() -> int:
         data_dir=out_data_dir,
         params=params,
     )
+
+    job_runs_path = out_data_dir / "clean" / "job_runs.parquet"
+
     print(f"Wrote {events_path}")
     print(f"Wrote {users_path}")
+    print(f"Wrote {job_runs_path}")
     return 0
 
 

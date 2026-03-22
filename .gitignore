@@ -70,11 +70,16 @@ data/**
 !data/clean/
 !data/clean/events.parquet
 !data/clean/users.parquet
+!data/clean/job_runs.parquet
 
 # Scratch / temp
 scratch/
 tmp/
 temp/
+
+# ignore artifacts
+sql/debug/job/out/*
+!sql/debug/job/out/.gitkeep
 
 # Project policy (currently ignored; revisit for portfolio reproducibility)
 examples/
