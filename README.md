@@ -6,7 +6,7 @@ An offline-first analytics Metrics API built with FastAPI, DuckDB, and Parquet.
 
 ## Overview
 
-This repository is a small but production-minded backend portfolio project. It exposes a read-only HTTP API over a deterministic synthetic SaaS event dataset, computes predefined analytics metrics such as `dau`, `new_users`, and `conversion_rate`, and returns JSON responses through resource-oriented endpoints like `GET /metrics/{name}` and `GET /users/{user_id}`.
+This repository is a small but production-minded backend portfolio project. It exposes a read-only HTTP API over a deterministic synthetic SaaS dataset, returns predefined analytics metrics through `GET /metrics/{name}`, resolves user entities through `GET /users/{user_id}`, and now also exposes lightweight job-run resources for operational inspection.
 
 The project is intentionally scoped as an MVP: small enough to review quickly, but structured to demonstrate backend and analytics-engineering fundamentals that matter in real work.
 
@@ -37,6 +37,8 @@ This API is intentionally designed around **resource-oriented HTTP / REST-style 
   - `GET /health`
   - `GET /metrics`
   - `GET /metrics/{name}`
+  - `GET /jobs/runs`
+  - `GET /jobs/{job_name}/summary`
   - `GET /users/{user_id}`
 - **Resource identity lives in the path** (`{name}`, `{user_id}`), while **filtering and windowing live in query parameters** (`start`, `end`, `group_by`, `limit`).
 - The MVP is **read-only**, so `GET` is the only method exposed.
@@ -47,18 +49,31 @@ This is not a “full REST maturity model”. It is a deliberate attempt to show
 
 ## What the app does
 
-The application reads a local Parquet dataset, queries it through DuckDB, and exposes a small metrics catalog and user entity endpoint.
+The application reads local Parquet datasets, queries them through DuckDB, and exposes a small read-only analytics API.
+
+It currently provides:
+
+- predefined analytics metrics through `GET /metrics/{name}`
+- user entity lookup through `GET /users/{user_id}`
+- lightweight job-run resources through `GET /jobs/runs` and `GET /jobs/{job_name}/summary`
 
 ### Current MVP scope
 
-- Dataset: deterministic synthetic SaaS-style events (`signup`, `login`, `checkout`, `cancel`)
-- Storage: `data/clean/events.parquet`
+- Dataset:
+  - deterministic synthetic SaaS-style events (`signup`, `login`, `checkout`, `cancel`)
+  - deterministic synthetic job runs for a small fixed job catalog
+- Storage:
+  - `data/clean/events.parquet`
+  - `data/clean/users.parquet`
+  - `data/clean/job_runs.parquet`
 - Query engine: DuckDB
 - API framework: FastAPI
 - Main endpoints:
   - `GET /health`
   - `GET /metrics`
   - `GET /metrics/{name}`
+  - `GET /jobs/runs`
+  - `GET /jobs/{job_name}/summary`
   - `GET /users/{user_id}`
 
 ### Metrics included in v0.1.0
@@ -79,6 +94,23 @@ Together, they provide a minimal analytics view of acquisition, engagement, and 
 
 For a fuller explanation of metric semantics, business meaning, and current limitations, see [METRICS.md](METRICS.md).
 
+### Job resources introduced in v0.2.0
+
+The v0.2.0 line extends the repository with a small read-only job-run layer backed by `data/clean/job_runs.parquet`.
+
+These endpoints are intentionally lightweight:
+
+- `GET /jobs/runs`
+  - list job runs within a requested date window
+  - optional filtering by `job_name` and `status`
+  - derived fields such as `duration_sec` and `schedule_delay_sec`
+
+- `GET /jobs/{job_name}/summary`
+  - return one-job aggregate statistics within a requested date window
+  - include counts, rates, averages, and `latest_*` fields based on the latest scheduled run in the filtered window
+
+This is not a scheduler, queue worker, or orchestration system. It is a compact operational read layer designed to show resource-oriented API design, Parquet-backed query modeling, and SQL-to-API traceability.
+
 ## Architecture at a glance
 
 ```text
@@ -90,6 +122,7 @@ Synthetic generator -> Parquet dataset -> DuckDB queries -> FastAPI endpoints ->
 - `src/app/main.py` — app factory, routes, response shaping
 - `src/app/warehouse.py` — DuckDB query layer
 - `src/app/metrics_catalog.py` — metric definitions / allow-lists
+- `src/app/jobs_catalog.py` — fixed synthetic job definitions used for sample generation
 - `src/app/models.py` — runtime config
 - `src/app/synth.py` — deterministic synthetic dataset generation
 - `scripts/generate_sample.py` — sample dataset generation CLI
@@ -117,6 +150,7 @@ analytics-metrics-api/
       metrics_catalog.py
       models.py
       synth.py
+      jobs_catalog.py
       static/
         index.html
         styles.css
@@ -148,6 +182,18 @@ analytics-metrics-api/
       dau_window_by_day.sql
       dau_window_by_country.sql
       users_parquet_override_debug.sql
+      job/
+        job_setup.sql
+        job_runs_window.sql
+        job_summary_by_name.sql
+        job_runs_overview_by_job.sql
+        cli/
+          run_job_summary_by_name_line.duckdb
+          run_job_summary_by_name_csv.duckdb
+          run_job_runs_window.duckdb
+          run_job_runs_overview_by_job.duckdb
+        out/
+          .gitkeep
 ```
 
 `sql/debug/` contains manual validation queries for inspecting metric logic directly in DuckDB against the local Parquet dataset. These files are development aids only and do not replace the application queries implemented in `src/app/warehouse.py`.
@@ -177,6 +223,7 @@ This writes:
 ```text
 data/clean/events.parquet
 data/clean/users.parquet
+data/clean/job_runs.parquet
 ```
 
 Sample generation writes both `data/clean/events.parquet` and `data/clean/users.parquet`.
@@ -207,6 +254,13 @@ DAU by day:
 
 ```bash
 curl "http://127.0.0.1:8000/metrics/dau?start=2026-01-01&end=2026-01-07&group_by=day&limit=365"
+```
+
+Job runs:
+
+```bash
+curl "http://127.0.0.1:8000/jobs/runs?start=2026-01-01&end=2026-01-07&limit=100"
+curl "http://127.0.0.1:8000/jobs/daily_ingest/summary?start=2026-01-01&end=2026-01-07"
 ```
 
 User entity:

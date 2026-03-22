@@ -8,9 +8,12 @@ from typing import Never, NotRequired, Required, TypeAlias, TypedDict
 import numpy as np
 import pandas as pd
 
+from .jobs_catalog import JOBS
+
 _EVENT_NAMES_NON_SIGNUP = ("login", "checkout", "cancel")
 _COUNTRIES = ("US", "JP", "DE", "GB")
 _PLANS = ("free", "pro", "team")
+_JOB_NAMES = tuple(sorted(JOBS.keys()))
 
 
 IntLike: TypeAlias = int | str
@@ -60,11 +63,12 @@ def _parse_intlike(x: IntLike, *, field: str) -> int:
 
 @dataclass(frozen=True, slots=True)
 class SynthParams:
-    """Deterministic synthetic dataset parameters for MVP.
+    """Deterministic synthetic dataset parameters.
 
     Notes:
-    - event_id remains int64 (monotonic increasing) for MVP simplicity.
-    - events_per_user means "total events per user INCLUDING signup".
+    - `days` is the canonical current public parameter shape.
+    - `event_id` remains int64 for deterministic, minimal MVP behavior.
+    - `events_per_user` means total events per user INCLUDING signup.
     """
 
     seed: int
@@ -79,7 +83,7 @@ class SynthParams:
         return self.start + timedelta(days=self.days - 1)
 
     def to_json_dict(self) -> dict[str, object]:
-        # Prefer spec-style params: end (inclusive) + events_per_user.
+        # Prefer canonical current params: start + days.
         return {
             "seed": self.seed,
             "start": self.start.isoformat(),
@@ -91,12 +95,10 @@ class SynthParams:
 
     @classmethod
     def from_json_dict(cls, d: SynthParamsJson) -> "SynthParams":
-        # --- XOR runtime check: exactly one of ("end", "days") must be present ---
+        # Exactly one of ("end", "days") must be present.
         has_end = "end" in d
         has_days = "days" in d
         if has_end == has_days:
-            # both True  -> invalid (ambiguous)
-            # both False -> invalid (insufficient)
             raise ValueError('params must include exactly one of "end" or "days"')
 
         seed = _parse_intlike(d["seed"], field="seed")
@@ -104,11 +106,9 @@ class SynthParams:
         n_users = _parse_intlike(d["n_users"], field="n_users")
 
         if has_end:
-            # Here d is expected to be SynthParamsJsonEnd
             end = date.fromisoformat(d["end"])
             days = (end - start).days + 1
         else:
-            # Here d is expected to be SynthParamsJsonDays
             days = _parse_intlike(d["days"], field="days")
 
         events_per_user = _parse_intlike(
@@ -118,7 +118,6 @@ class SynthParams:
             d.get("known_user_id", 42), field="known_user_id"
         )
 
-        # --- validations ---
         if days < 1:
             raise ValueError("days must be >= 1")
         if n_users < 1:
@@ -138,11 +137,69 @@ class SynthParams:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class JobSynthRule:
+    """Internal deterministic generation rule per job type."""
+
+    scheduled_hour_utc: int
+    delay_min_low: int
+    delay_min_high: int
+    late_prob: float
+    late_extra_min_low: int
+    late_extra_min_high: int
+    duration_min_low: int
+    duration_min_high: int
+    failure_prob: float
+    rows_base: str  # "events" or "users"
+    rows_jitter_pct: int
+
+
+_JOB_SYNTH_RULES: dict[str, JobSynthRule] = {
+    "billing_summary_build": JobSynthRule(
+        scheduled_hour_utc=3,
+        delay_min_low=0,
+        delay_min_high=6,
+        late_prob=0.08,
+        late_extra_min_low=10,
+        late_extra_min_high=25,
+        duration_min_low=4,
+        duration_min_high=10,
+        failure_prob=0.05,
+        rows_base="users",
+        rows_jitter_pct=5,
+    ),
+    "daily_ingest": JobSynthRule(
+        scheduled_hour_utc=1,
+        delay_min_low=0,
+        delay_min_high=8,
+        late_prob=0.12,
+        late_extra_min_low=15,
+        late_extra_min_high=40,
+        duration_min_low=8,
+        duration_min_high=18,
+        failure_prob=0.06,
+        rows_base="events",
+        rows_jitter_pct=3,
+    ),
+    "feature_refresh": JobSynthRule(
+        scheduled_hour_utc=5,
+        delay_min_low=1,
+        delay_min_high=10,
+        late_prob=0.15,
+        late_extra_min_low=20,
+        late_extra_min_high=45,
+        duration_min_low=12,
+        duration_min_high=25,
+        failure_prob=0.07,
+        rows_base="users",
+        rows_jitter_pct=8,
+    ),
+}
+
+
 def _to_utc_naive_series(s: pd.Series) -> pd.Series:
     """Normalize a datetime-like Series to timezone-naive UTC timestamps."""
     tmp = pd.to_datetime(s, utc=True)
-    # pandas typing: to_datetime can return Timestamp/Series/DatetimeIndex
-    # depending on the input shape. Here we pass a Series, so assert it.
     assert isinstance(tmp, pd.Series)
     return tmp.dt.tz_localize(None)
 
@@ -159,8 +216,6 @@ def _normalize_events_df(df: pd.DataFrame) -> pd.DataFrame:
     df["event_time"] = _to_utc_naive_series(df["event_time"])
 
     # Deterministic lexicographic order: event_time ASC, then event_id ASC.
-    # Use two stable single-column sorts because DataFrame.sort_values(kind=...)
-    # only guarantees the algorithm choice for a single column.
     df = df.sort_values("event_id", kind="stable")
     df = df.sort_values("event_time", kind="stable").reset_index(drop=True)
     return df
@@ -176,6 +231,27 @@ def _normalize_users_df(df: pd.DataFrame) -> pd.DataFrame:
     df["signup_time"] = _to_utc_naive_series(df["signup_time"])
 
     df = df.sort_values("user_id", kind="stable").reset_index(drop=True)
+    return df
+
+
+def _normalize_job_runs_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply dtypes and deterministic ordering for job runs."""
+    df = df.copy()
+
+    df["run_id"] = df["run_id"].astype("int64")
+    df["job_name"] = df["job_name"].astype("string")
+    df["status"] = df["status"].astype("string")
+    df["rows_processed"] = df["rows_processed"].astype("int64")
+
+    df["scheduled_for"] = _to_utc_naive_series(df["scheduled_for"])
+    df["started_at"] = _to_utc_naive_series(df["started_at"])
+    df["ended_at"] = _to_utc_naive_series(df["ended_at"])
+
+    # Deterministic lexicographic order:
+    # scheduled_for ASC, then job_name ASC, then run_id ASC.
+    df = df.sort_values("run_id", kind="stable")
+    df = df.sort_values("job_name", kind="stable")
+    df = df.sort_values("scheduled_for", kind="stable").reset_index(drop=True)
     return df
 
 
@@ -269,6 +345,24 @@ def _build_synth_frames(*, params: SynthParams) -> tuple[pd.DataFrame, pd.DataFr
     return events_df, users_df
 
 
+def _base_rows_processed(
+    *, params: SynthParams, rule: JobSynthRule, rng: np.random.Generator
+) -> int:
+    """Compute a deterministic baseline rows_processed value for one job run."""
+    total_events = params.n_users * params.events_per_user
+
+    if rule.rows_base == "events":
+        base = total_events
+    elif rule.rows_base == "users":
+        base = params.n_users
+    else:
+        raise ValueError(f"Unknown rows_base: {rule.rows_base}")
+
+    pct = int(rng.integers(-rule.rows_jitter_pct, rule.rows_jitter_pct + 1))
+    value = int(round(base * (1.0 + pct / 100.0)))
+    return max(0, value)
+
+
 def build_events_df(*, params: SynthParams) -> pd.DataFrame:
     """Build synthetic events DataFrame deterministically (no I/O)."""
     events_df, _ = _build_synth_frames(params=params)
@@ -279,6 +373,76 @@ def build_users_df(*, params: SynthParams) -> pd.DataFrame:
     """Build synthetic users DataFrame deterministically (no I/O)."""
     _, users_df = _build_synth_frames(params=params)
     return users_df
+
+
+def build_job_runs_df(*, params: SynthParams) -> pd.DataFrame:
+    """Build synthetic job_runs DataFrame deterministically (no I/O)."""
+    missing = set(_JOB_NAMES) - set(_JOB_SYNTH_RULES)
+    extra = set(_JOB_SYNTH_RULES) - set(_JOB_NAMES)
+    if missing or extra:
+        raise ValueError(
+            "Job catalog / synth rule mismatch: "
+            f"missing_rules={sorted(missing)}, extra_rules={sorted(extra)}"
+        )
+
+    # Separate random stream from events/users generation while remaining deterministic.
+    rng = np.random.default_rng(params.seed + 10_000)
+
+    run_rows: list[dict[str, object]] = []
+    run_id = 1
+
+    for day_off in range(params.days):
+        run_day = params.start + timedelta(days=day_off)
+
+        for job_name in _JOB_NAMES:
+            rule = _JOB_SYNTH_RULES[job_name]
+
+            scheduled_for = datetime.combine(
+                run_day,
+                time(rule.scheduled_hour_utc, 0, 0),
+                tzinfo=timezone.utc,
+            )
+
+            delay_min = int(rng.integers(rule.delay_min_low, rule.delay_min_high + 1))
+            if rng.random() < rule.late_prob:
+                delay_min += int(
+                    rng.integers(
+                        rule.late_extra_min_low,
+                        rule.late_extra_min_high + 1,
+                    )
+                )
+
+            started_at = scheduled_for + timedelta(minutes=delay_min)
+
+            duration_min = int(
+                rng.integers(rule.duration_min_low, rule.duration_min_high + 1)
+            )
+            ended_at = started_at + timedelta(minutes=duration_min)
+
+            failed = bool(rng.random() < rule.failure_prob)
+            status = "failed" if failed else "success"
+
+            base_rows = _base_rows_processed(params=params, rule=rule, rng=rng)
+            if failed:
+                partial_pct = int(rng.integers(5, 31))
+                rows_processed = int(round(base_rows * (partial_pct / 100.0)))
+            else:
+                rows_processed = base_rows
+
+            run_rows.append(
+                {
+                    "run_id": run_id,
+                    "job_name": job_name,
+                    "scheduled_for": scheduled_for,
+                    "started_at": started_at,
+                    "ended_at": ended_at,
+                    "status": status,
+                    "rows_processed": rows_processed,
+                }
+            )
+            run_id += 1
+
+    return _normalize_job_runs_df(pd.DataFrame(run_rows))
 
 
 def _write_parquet_df(*, df: pd.DataFrame, out_path: Path, table_name: str) -> Path:
@@ -321,15 +485,35 @@ def ensure_users_parquet(*, data_dir: Path, params: SynthParams) -> Path:
     return _write_parquet_df(df=df, out_path=out_path, table_name="users")
 
 
+def ensure_job_runs_parquet(*, data_dir: Path, params: SynthParams) -> Path:
+    """Write data/clean/job_runs.parquet."""
+    clean_dir = data_dir / "clean"
+    clean_dir.mkdir(parents=True, exist_ok=True)
+    out_path = clean_dir / "job_runs.parquet"
+
+    df = build_job_runs_df(params=params)
+    return _write_parquet_df(df=df, out_path=out_path, table_name="job_runs")
+
+
 def ensure_sample_parquets(*, data_dir: Path, params: SynthParams) -> tuple[Path, Path]:
-    """Write both events.parquet and users.parquet from one deterministic build."""
+    """Write canonical sample Parquet datasets from one deterministic build.
+
+    Backward compatibility:
+    - returns (events_path, users_path) as before
+    - also writes clean/job_runs.parquet for v0.2.0 generation
+    """
     clean_dir = data_dir / "clean"
     clean_dir.mkdir(parents=True, exist_ok=True)
 
     events_path = clean_dir / "events.parquet"
     users_path = clean_dir / "users.parquet"
+    job_runs_path = clean_dir / "job_runs.parquet"
 
     events_df, users_df = _build_synth_frames(params=params)
+    job_runs_df = build_job_runs_df(params=params)
+
     _write_parquet_df(df=events_df, out_path=events_path, table_name="events")
     _write_parquet_df(df=users_df, out_path=users_path, table_name="users")
+    _write_parquet_df(df=job_runs_df, out_path=job_runs_path, table_name="job_runs")
+
     return events_path, users_path

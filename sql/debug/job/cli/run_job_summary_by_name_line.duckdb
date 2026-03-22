@@ -1,0 +1,7 @@
+# DuckDB CLI helper for manual verification.
+# This file is not application SQL and is not used by the API.
+# It only controls output mode and file routing for local inspection.
+
+.mode line
+.read sql/debug/job/job_setup.sql
+.read sql/debug/job/job_summary_by_name.sql
