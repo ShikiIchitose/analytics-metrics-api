@@ -355,6 +355,10 @@ uv run pytest
 - `GET /users/{user_id}` returns stable known output for a fixed user
 - `GET /metrics` returns a stable catalog structure
 - `GET /metrics/dau` returns known expected rows for a fixed window
+- `GET /jobs/runs` returns `200` with stable response structure for a deterministic sample dataset
+- `GET /jobs/runs` applies `job_name` and `status` filters correctly
+- `GET /jobs/{job_name}/summary` returns a stable aggregate response shape for a deterministic sample dataset
+- job endpoints return `503` when `job_runs.parquet` is unavailable
 - `GET /` returns `200` and serves the demo page with linked static assets
 
 ### Testing design notes
@@ -364,6 +368,7 @@ uv run pytest
 - Metric tests compare stable subsets such as `response["data"]["rows"]`.
 - Entity tests compare `response["data"]`.
 - `pytest-socket` runs with sockets disabled by default, and the `client` fixture enables socket access only where `TestClient` requires it.
+- Job-endpoint tests focus on response structure, filter behavior, and graceful handling when the job_runs dataset is unavailable, rather than on brittle full-response snapshots.
 
 Regenerate golden outputs:
 

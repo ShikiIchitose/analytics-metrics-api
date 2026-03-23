@@ -263,6 +263,26 @@ FastAPI app extension, static asset serving, basic HTML / CSS / JavaScript, fetc
 **示せるスキル**  
 Backend evolution, resource-oriented API design, DuckDB / Parquet data modeling, operational read API design, SQL-based validation, CLI workflow design, documentation hygiene
 
+### 2026/3/23 — job系 endpoint テストの追加
+
+**概要**  
+`GET /jobs/runs` および `GET /jobs/{job_name}/summary` に対する offline-first の接続テストを追加しました。  
+`/jobs/runs` では基本的なレスポンス構造と `job_name` / `status` フィルタの適用を確認し、`/jobs/{job_name}/summary` では集約レスポンスの主要 shape を確認しています。あわせて、`job_runs.parquet` が利用できない場合に job 系 endpoint が `503` を返すこともテストで固定しました。
+
+**この更新の意図**  
+v0.2.0 では job 系 read-only resource を追加しましたが、公開面に対して test coverage はまだ最小限でした。  
+そこで今回は、返り値全体の壊れやすい固定比較ではなく、レスポンス構造、filter の配線、required dataset が存在しない場合のエラーハンドリングといった、API contract 上で重要な部分を中心に確認する形で tests を補強しました。
+
+**見てほしい点**
+
+- `GET /jobs/runs` の listing endpoint に対して、shape と filter behavior を分けて確認していること
+- `GET /jobs/{job_name}/summary` に対して、厳密な full snapshot ではなく aggregate response の contract を確認していること
+- `job_runs.parquet` 不在時の `503` を tests で固定し、dataset availability の扱いを明示していること
+- v0.2.0 で追加した resource を、実装だけでなく offline-first test suite まで含めて整えていること
+
+**示せるスキル**  
+API integration testing, contract-focused testing, FastAPI test design, offline-first validation, error-handling verification, maintainability, CI
+
 ---
 
 ## この文書で見ていただきたいポイント
