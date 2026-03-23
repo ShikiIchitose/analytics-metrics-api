@@ -361,14 +361,18 @@ http://127.0.0.1:8000/
 uv run pytest
 ```
 
-### テストが見ていること
+### テストで確認していること
 
-- `GET /health` が `200` を返す
-- `GET /users/{user_id}` が missing user に対して `404` を返す
-- `GET /users/{user_id}` が固定 user に対して stable な known output を返す
-- `GET /metrics` が stable な catalog structure を返す
-- `GET /metrics/dau` が固定 window に対して known expected rows を返す
-- `GET /` が `200` を返し、`/static` 配下の asset を参照するデモページを配信すること
+- `GET /health` が `200` を返すこと
+- `GET /users/{user_id}` が存在しないユーザーに対して `404` を返すこと
+- `GET /users/{user_id}` が固定ユーザーに対して安定した既知の出力を返すこと
+- `GET /metrics` が安定したカタログ構造を返すこと
+- `GET /metrics/dau` が固定ウィンドウに対して既知の期待行を返すこと
+- `GET /jobs/runs` が deterministic なサンプルデータセットに対して `200` と安定したレスポンス構造を返すこと
+- `GET /jobs/runs` が `job_name` および `status` フィルタを正しく適用すること
+- `GET /jobs/{job_name}/summary` が deterministic なサンプルデータセットに対して安定した集約レスポンス構造を返すこと
+- `job_runs.parquet` が利用できない場合に job 系 endpoint が `503` を返すこと
+- `GET /` が `200` を返し、デモページと関連する静的アセットを配信すること
 
 ### Testing design notes
 
@@ -377,6 +381,7 @@ uv run pytest
 - Metric tests は `response["data"]["rows"]` のような stable subset を比較する
 - Entity tests は `response["data"]` を比較する
 - `pytest-socket` は default で socket を disable し、`TestClient` が必要な `client` fixture だけ `socket_enabled` で許可する
+- job 系 endpoint のテストでは、壊れやすいレスポンス全体の固定比較ではなく、レスポンス構造、フィルタの挙動、および job_runs データセットが利用できない場合の扱いを重点的に確認しています。
 
 Golden outputs の再生成:
 
