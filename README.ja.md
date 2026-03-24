@@ -420,6 +420,17 @@ uv run python tools/regenerate_golden.py
 
 目的は大がかりな delivery pipeline を作ることではなく、小さな portfolio project の中で、再現性を意識した engineering 上の姿勢を示すことにあります。
 
+## CD / 公開デモのデプロイ
+
+この repository には、ブラウザから確認できる小さな public demo も用意しています。
+
+- API と thin browser demo は同じ FastAPI app から配信しています
+- 公開デモは、別の static site ではなく軽量な web service として配置しています
+- deployment は意図的に最小限にしており、重い配信基盤を作ることではなく、既存の read-only API を外部から確認しやすくすることを目的にしています
+- 現在の構成では、デプロイ対象 branch に入った GitHub 側の更新が public demo に自動反映されます
+
+この deployment layer もあくまで補助導線です。本リポジトリの主な engineering signal は、backend / query 設計、再現性、offline-first validation にあります。
+
 ## 意図的な設計判断
 
 ### 1. service-heavy ではなく offline-first

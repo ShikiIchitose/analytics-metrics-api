@@ -407,6 +407,17 @@ The purpose of CI in this repository is to keep the project reproducible and eas
 
 The goal is not to build a heavy delivery pipeline, but to show reproducible engineering discipline in a small portfolio project.
 
+## CD / public demo deployment
+
+This repository also has a small public demo deployment for browser-based inspection.
+
+- the API and the thin browser demo are served by the same FastAPI app
+- the public demo is deployed as a lightweight web service rather than as a separate static site
+- deployment is intentionally minimal: the goal is to make the existing read-only API easy to inspect, not to build a heavy delivery platform
+- in the current setup, GitHub-backed updates to the deployed branch are reflected automatically in the public demo
+
+This deployment layer is kept intentionally small. The main engineering signal of the repository remains the backend, query design, reproducibility, and offline-first validation.
+
 ## Design choices that are intentional
 
 ### 1. Offline-first instead of service-heavy
