@@ -283,6 +283,27 @@ v0.2.0 では job 系 read-only resource を追加しましたが、公開面に
 **示せるスキル**  
 API integration testing, contract-focused testing, FastAPI test design, offline-first validation, error-handling verification, maintainability, CI
 
+### 2026/3/24 — デモUIへの job系インターフェース追加
+
+**概要**  
+既存の browser demo UI を拡張し、`GET /jobs/runs` と `GET /jobs/{job_name}/summary` をブラウザから試せる最小の job 系インターフェースを追加しました。  
+`src/app/static/index.html`、`styles.css`、`app.js` を更新し、job run 一覧取得と one-job summary 取得を、既存の metrics / user lookup と同じ thin demo surface の中で確認できるようにしました。
+
+**この更新の意図**  
+今回の変更の目的は、新しい backend endpoint を増やすことではなく、すでに実装済みだった job 系 read-only resource を browser 上でも確認しやすくすることにあります。  
+UI 側に業務ロジックを持たせず、既存 API contract をそのまま利用することで、backend-first の設計を維持したまま公開導線だけを小さく改善しました。
+
+**見てほしい点**
+
+- 既存の `GET /jobs/runs` と `GET /jobs/{job_name}/summary` を browser demo から操作できるようにしたこと
+- jobs を metrics とは別の resource family として、1 card / 2 forms の最小構成で surfacing していること
+- UI 側には新しい集計ロジックを持たせず、既存 API response をそのまま表示していること
+- plain HTML / CSS / JavaScript の範囲で、一覧系 response と summary response を描き分けていること
+- 既存の thin demo UI の方針を維持しつつ、read-only operational resource まで公開導線を広げたこと
+
+**示せるスキル**  
+FastAPI demo surfacing, static asset iteration, browser-based API inspection, plain JavaScript UI wiring, resource-oriented UI composition, backward-compatible frontend extension, documentation hygiene, CSS
+
 ---
 
 ## この文書で見ていただきたいポイント

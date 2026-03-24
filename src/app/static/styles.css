@@ -1,7 +1,7 @@
 :root {
   color-scheme: light dark;
 
-  --border: #d0d7de;
+  --border: #bcc3c9;
   --error: #f53a2d;
   --ok: #03c33a;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
@@ -17,7 +17,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --border: #30363d;
+    --border: #49525c;
     --ok: #62f78c;
 
     --bg-page: #0d1117;
@@ -65,7 +65,7 @@ h1 {
 h2 {
   margin-top: 0;
   margin-bottom: 16px;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
 }
 
 .lead {
@@ -197,7 +197,7 @@ th,
 td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  text-align: left;
+  text-align: center;
   vertical-align: top;
   color: var(--text-main);
 }
@@ -230,4 +230,88 @@ details summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--text-main);
+}
+
+.card-section {
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
+.card-section:first-of-type {
+  margin-top: 16px;
+  padding-top: 0;
+}
+
+.card-section + .card-section {
+  border-top: 2px solid var(--border);
+}
+
+.section-title {
+  margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.summary-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.summary-table th {
+  width: 40%;
+  white-space: normal;
+}
+
+.summary-table td {
+  width: 60%;
+  overflow-wrap: anywhere;
+}
+
+.summary-table th {
+  white-space: normal;
+}
+
+.summary-table td {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .summary-table th {
+    width: 140px;
+    white-space: normal;
+  }
+}
+
+#metric-result table th + th,
+#metric-result table td + td {
+  border-left: 1px solid var(--border);
+}
+
+#metric-result table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+#metric-result table.cols-2 th:first-child,
+#metric-result table.cols-2 td:first-child {
+  width: 35%;
+}
+
+#metric-result table.cols-2 th:last-child,
+#metric-result table.cols-2 td:last-child {
+  width: 65%;
+}
+
+#metric-result table.cols-3 th,
+#metric-result table.cols-3 td {
+  width: 33.333%;
+}
+
+#metric-result table th,
+#metric-result table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

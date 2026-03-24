@@ -13,6 +13,18 @@ const userStatus = document.getElementById("user-status");
 const userResult = document.getElementById("user-result");
 const userRaw = document.getElementById("user-raw");
 
+const jobRunsForm = document.getElementById("job-runs-form");
+const jobRunsRequest = document.getElementById("job-runs-request");
+const jobRunsStatus = document.getElementById("job-runs-status");
+const jobRunsResult = document.getElementById("job-runs-result");
+const jobRunsRaw = document.getElementById("job-runs-raw");
+
+const jobSummaryForm = document.getElementById("job-summary-form");
+const jobSummaryRequest = document.getElementById("job-summary-request");
+const jobSummaryStatus = document.getElementById("job-summary-status");
+const jobSummaryResult = document.getElementById("job-summary-result");
+const jobSummaryRaw = document.getElementById("job-summary-raw");
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -70,6 +82,8 @@ function renderRowsTable(rows) {
     }, new Set()),
   );
 
+  const colCountClass = `cols-${columns.length}`;
+
   const headHtml = columns
     .map((column) => `<th>${escapeHtml(column)}</th>`)
     .join("");
@@ -89,7 +103,7 @@ function renderRowsTable(rows) {
 
   return `
     <div class="table-wrap">
-      <table>
+      <table class="${colCountClass}">
         <thead>
           <tr>${headHtml}</tr>
         </thead>
@@ -133,6 +147,43 @@ function renderUser(user) {
     </dl>
   `;
   userResult.className = "panel";
+}
+
+function renderKeyValueTable(obj) {
+  if (!obj || typeof obj !== "object") {
+    return '<div class="muted">No data returned.</div>';
+  }
+
+  const rowsHtml = Object.entries(obj)
+    .map(([key, value]) => {
+      return `
+        <tr>
+          <th>${escapeHtml(key)}</th>
+          <td>${escapeHtml(formatValue(value))}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="table-wrap">
+      <table class="summary-table">
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function setJobRunsIdleState(message) {
+  jobRunsStatus.textContent = message;
+  jobRunsStatus.className = "status muted";
+}
+
+function setJobSummaryIdleState(message) {
+  jobSummaryStatus.textContent = message;
+  jobSummaryStatus.className = "status muted";
 }
 
 function setMetricIdleState(message) {
@@ -252,5 +303,121 @@ userForm.addEventListener("submit", async (event) => {
     `;
     userResult.className = "panel";
     userRaw.textContent = String(error);
+  }
+});
+
+jobRunsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  setJobRunsIdleState("Loading...");
+  jobRunsResult.textContent = "";
+  jobRunsResult.className = "panel";
+  jobRunsRaw.textContent = "";
+
+  const formData = new FormData(jobRunsForm);
+
+  const start = String(formData.get("start") ?? "").trim();
+  const end = String(formData.get("end") ?? "").trim();
+  const limit = String(formData.get("limit") ?? "").trim();
+  const jobName = String(formData.get("job_name") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+
+  const params = new URLSearchParams();
+  params.set("start", start);
+  params.set("end", end);
+  params.set("limit", limit);
+
+  if (jobName !== "") {
+    params.set("job_name", jobName);
+  }
+  if (status !== "") {
+    params.set("status", status);
+  }
+
+  const url = `/jobs/runs?${params.toString()}`;
+  jobRunsRequest.textContent = url;
+
+  try {
+    const { response, body, rawText } = await fetchJson(url);
+
+    jobRunsStatus.textContent = `HTTP ${response.status}`;
+    jobRunsStatus.className = response.ok
+      ? "status ok-text"
+      : "status error-text";
+
+    jobRunsRaw.textContent = prettyResponse(body, rawText);
+
+    if (!response.ok) {
+      jobRunsResult.innerHTML = `
+        <pre class="mono error-text">${escapeHtml(prettyResponse(body, rawText))}</pre>
+      `;
+      jobRunsResult.className = "panel";
+      return;
+    }
+
+    const rows = body?.data?.rows ?? [];
+    jobRunsResult.innerHTML = renderRowsTable(rows);
+    jobRunsResult.className = "panel";
+  } catch (error) {
+    jobRunsStatus.textContent = "Request failed";
+    jobRunsStatus.className = "status error-text";
+    jobRunsResult.innerHTML = `
+      <pre class="mono error-text">${escapeHtml(String(error))}</pre>
+    `;
+    jobRunsResult.className = "panel";
+    jobRunsRaw.textContent = String(error);
+  }
+});
+
+jobSummaryForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  setJobSummaryIdleState("Loading...");
+  jobSummaryResult.textContent = "";
+  jobSummaryResult.className = "panel";
+  jobSummaryRaw.textContent = "";
+
+  const formData = new FormData(jobSummaryForm);
+
+  const jobName = String(formData.get("job_name") ?? "").trim();
+  const start = String(formData.get("start") ?? "").trim();
+  const end = String(formData.get("end") ?? "").trim();
+
+  const params = new URLSearchParams();
+  params.set("start", start);
+  params.set("end", end);
+
+  const url = `/jobs/${encodeURIComponent(jobName)}/summary?${params.toString()}`;
+  jobSummaryRequest.textContent = url;
+
+  try {
+    const { response, body, rawText } = await fetchJson(url);
+
+    jobSummaryStatus.textContent = `HTTP ${response.status}`;
+    jobSummaryStatus.className = response.ok
+      ? "status ok-text"
+      : "status error-text";
+
+    jobSummaryRaw.textContent = prettyResponse(body, rawText);
+
+    if (!response.ok) {
+      jobSummaryResult.innerHTML = `
+        <pre class="mono error-text">${escapeHtml(prettyResponse(body, rawText))}</pre>
+      `;
+      jobSummaryResult.className = "panel";
+      return;
+    }
+
+    const summary = body?.data ?? null;
+    jobSummaryResult.innerHTML = renderKeyValueTable(summary);
+    jobSummaryResult.className = "panel";
+  } catch (error) {
+    jobSummaryStatus.textContent = "Request failed";
+    jobSummaryStatus.className = "status error-text";
+    jobSummaryResult.innerHTML = `
+      <pre class="mono error-text">${escapeHtml(String(error))}</pre>
+    `;
+    jobSummaryResult.className = "panel";
+    jobSummaryRaw.textContent = String(error);
   }
 });
