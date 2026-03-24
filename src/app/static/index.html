@@ -125,6 +125,123 @@
                 </details>
             </div>
         </section>
+
+        <section class="card" aria-labelledby="jobs-title">
+            <h2 id="jobs-title">Jobs</h2>
+
+            <p class="lead">
+                Read-only inspection for job runs and job summary.
+            </p>
+
+            <div class="card-section">
+                <h3 class="section-title">Job runs</h3>
+
+                <form id="job-runs-form" class="form-grid">
+                    <label for="job_runs_start">
+                        Start date
+                        <input id="job_runs_start" name="start" type="date" value="2026-01-01" required />
+                    </label>
+
+                    <label for="job_runs_end">
+                        End date
+                        <input id="job_runs_end" name="end" type="date" value="2026-01-07" required />
+                    </label>
+
+                    <label for="job_runs_limit">
+                        Limit
+                        <input id="job_runs_limit" name="limit" type="number" min="1" max="1000" step="1" value="100"
+                            required />
+                    </label>
+
+                    <label for="job_runs_job_name">
+                        Job name
+                        <input id="job_runs_job_name" name="job_name" type="text" value="" placeholder="(optional)" />
+                    </label>
+
+                    <label for="job_runs_status">
+                        Status
+                        <select id="job_runs_status" name="status">
+                            <option value="" selected>(empty)</option>
+                            <option value="success">success</option>
+                            <option value="failed">failed</option>
+                        </select>
+                    </label>
+
+                    <div class="button-wrap">
+                        <button type="submit">List job runs</button>
+                    </div>
+                </form>
+
+                <div class="result-block">
+                    <p class="result-label">Request URL</p>
+                    <pre id="job-runs-request" class="mono muted">Not run yet.</pre>
+                </div>
+
+                <div class="result-block">
+                    <p class="result-label">Status</p>
+                    <div id="job-runs-status" class="status muted">Idle</div>
+                </div>
+
+                <div class="result-block">
+                    <p class="result-label">Result</p>
+                    <div id="job-runs-result" class="panel muted">No result yet.</div>
+                </div>
+
+                <div class="result-block">
+                    <details>
+                        <summary>Raw response</summary>
+                        <pre id="job-runs-raw" class="mono muted">Not run yet.</pre>
+                    </details>
+                </div>
+            </div>
+
+            <div class="card-section">
+                <h3 class="section-title">Job summary</h3>
+
+                <form id="job-summary-form" class="form-grid">
+                    <label for="job_summary_job_name">
+                        Job name
+                        <input id="job_summary_job_name" name="job_name" type="text" value="feature_refresh" required />
+                    </label>
+
+                    <label for="job_summary_start">
+                        Start date
+                        <input id="job_summary_start" name="start" type="date" value="2026-01-01" required />
+                    </label>
+
+                    <label for="job_summary_end">
+                        End date
+                        <input id="job_summary_end" name="end" type="date" value="2026-01-07" required />
+                    </label>
+
+                    <div class="button-wrap">
+                        <button type="submit">Get job summary</button>
+                    </div>
+                </form>
+
+                <div class="result-block">
+                    <p class="result-label">Request URL</p>
+                    <pre id="job-summary-request" class="mono muted">Not run yet.</pre>
+                </div>
+
+                <div class="result-block">
+                    <p class="result-label">Status</p>
+                    <div id="job-summary-status" class="status muted">Idle</div>
+                </div>
+
+                <div class="result-block">
+                    <p class="result-label">Result</p>
+                    <div id="job-summary-result" class="panel muted">No result yet.</div>
+                </div>
+
+                <div class="result-block">
+                    <details>
+                        <summary>Raw response</summary>
+                        <pre id="job-summary-raw" class="mono muted">Not run yet.</pre>
+                    </details>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script src="/static/app.js"></script>

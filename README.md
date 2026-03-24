@@ -332,6 +332,15 @@ http://127.0.0.1:8000/
 
 This page is intentionally thin. It exists as a small demo surface for the existing API and does not replace the backend/data-focused design of the project.
 
+The browser demo currently exposes small interactive forms for:
+
+- metric execution through `GET /metrics/{name}`
+- user lookup through `GET /users/{user_id}`
+- job-run listing through `GET /jobs/runs`
+- one-job summary lookup through `GET /jobs/{job_name}/summary`
+
+This UI remains intentionally thin. It is a convenience inspection surface for the existing API and does not move business logic out of the backend.
+
 You can still use the repository primarily through:
 
 - `curl`
