@@ -279,9 +279,41 @@ details summary {
 }
 
 @media (max-width: 640px) {
+  .summary-table,
+  .summary-table tbody,
+  .summary-table tr,
+  .summary-table th,
+  .summary-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .summary-table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table tr:first-child {
+    padding-top: 0;
+  }
+
+  .summary-table tr:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
   .summary-table th {
-    width: 140px;
+    margin: 0 0 4px;
+    padding: 0;
+    border: 0;
+    font-weight: 700;
     white-space: normal;
+  }
+
+  .summary-table td {
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
   }
 }
 
