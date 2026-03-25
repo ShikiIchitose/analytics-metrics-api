@@ -9,7 +9,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .metrics_catalog import METRICS, GroupBy, list_metrics, metric_definition
+from .metrics_catalog import (
+    METRICS,
+    GroupBy,
+    MetricSpec,
+    list_metrics,
+    metric_definition,
+)
 from .models import AppConfig
 from .warehouse import (
     count_events_in_window,
@@ -26,6 +32,32 @@ APP_VERSION = "0.2.0"
 DATASET_ID = "synthetic_saas_v0"
 
 JobRunStatus = Literal["success", "failed"]
+
+
+def _unsupported_group_by_detail(
+    *,
+    metric_name: str,
+    attempted: GroupBy,
+    spec: MetricSpec,
+) -> str:
+    if metric_name == "new_users":
+        return (
+            f"new_users supports only group_by=day; got group_by={attempted!r}. "
+            "Try group_by=day, or omit group_by to use the default day grouping."
+        )
+
+    if metric_name == "conversion_rate":
+        return (
+            f"conversion_rate does not support group_by; got group_by={attempted!r}. "
+            "Remove group_by (use empty in the demo UI), or choose dau/new_users "
+            "if you want grouped output."
+        )
+
+    supported = ", ".join(spec.supported_group_by)
+    return (
+        f"Unsupported group_by={attempted!r} for metric={metric_name!r}. "
+        f"Supported values: {supported}. Try one of the supported values."
+    )
 
 
 class HealthWarehouse(BaseModel):
@@ -92,14 +124,30 @@ def create_app(cfg: AppConfig) -> FastAPI:
         spec = METRICS[name]
         gb: GroupBy | None = group_by
 
+        if gb is not None:
+            if name == "conversion_rate":
+                raise HTTPException(
+                    status_code=422,
+                    detail=_unsupported_group_by_detail(
+                        metric_name=name,
+                        attempted=gb,
+                        spec=spec,
+                    ),
+                )
+
+            if gb not in spec.supported_group_by:
+                raise HTTPException(
+                    status_code=422,
+                    detail=_unsupported_group_by_detail(
+                        metric_name=name,
+                        attempted=gb,
+                        spec=spec,
+                    ),
+                )
+
         # Default group_by for metrics that support it (spec is allow-list).
         if gb is None and spec.supported_group_by:
             gb = spec.supported_group_by[0]
-
-        if gb is not None and gb not in spec.supported_group_by:
-            raise HTTPException(
-                status_code=422, detail="Unsupported group_by for this metric"
-            )
 
         # meta: window + counts + warnings (per spec)
         n_events = count_events_in_window(cfg=cfg, start=start, end=end)
@@ -145,11 +193,6 @@ def create_app(cfg: AppConfig) -> FastAPI:
             }
 
         if name == "conversion_rate":
-            if gb is not None:
-                raise HTTPException(
-                    status_code=422, detail="conversion_rate does not support group_by"
-                )
-
             out = query_conversion_rate(cfg=cfg, start=start, end=end)
             if out["denominator"] < 20:
                 warnings.append("small_sample: denominator < 20")

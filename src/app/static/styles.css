@@ -69,7 +69,7 @@ h2 {
 }
 
 .lead {
-  margin: 0;
+  margin: 10;
   color: var(--text-soft);
 }
 
@@ -87,6 +87,42 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   align-items: end;
+  margin-inline: auto;
+}
+
+.metric-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 160px));
+  justify-content: start;
+}
+
+.metric-form-grid .button-wrap {
+  grid-row: 2;
+  grid-column: -2 / -1;
+  justify-self: end;
+}
+
+.job-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 160px));
+  justify-content: start;
+}
+
+.job-form-grid .button-wrap {
+  grid-row: 2;
+  grid-column: -2 / -1;
+  justify-self: end;
+}
+
+.job-sum-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
+  justify-content: start;
+}
+
+.user-form-inline {
+  display: grid;
+  grid-template-columns: fit-content(240px) max-content;
+  gap: 12px;
+  align-items: end;
+  justify-content: start;
 }
 
 label {
@@ -112,6 +148,15 @@ select {
   border-radius: 8px;
   background: var(--bg-surface);
   color: var(--text-main);
+  text-align: center;
+}
+
+.pull-down {
+  text-align: center;
+}
+
+.user-id-field {
+  max-width: 150px;
 }
 
 button {
@@ -126,7 +171,7 @@ button {
 }
 
 button:hover {
-  opacity: 0.92;
+  opacity: 0.9;
 }
 
 .button-wrap {
@@ -315,6 +360,44 @@ details summary {
     border: 0;
     overflow-wrap: anywhere;
   }
+
+  #metric-form {
+    grid-template-columns: 1fr;
+  }
+
+  #metric-form > .button-wrap {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  #job-runs-form {
+    grid-template-columns: 1fr;
+  }
+
+  #job-runs-form > .button-wrap {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  #job-summary-form {
+    grid-template-columns: 1fr;
+  }
+
+  #job-summary-form > .button-wrap {
+    grid-row: auto;
+    grid-column: auto;
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  #user-form {
+    justify-content: center;
+    margin-top: 5px;
+  }
 }
 
 #metric-result table th + th,
@@ -346,4 +429,10 @@ details summary {
 #metric-result table td {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+#job-runs-result table th,
+#job-runs-result table td {
+  white-space: nowrap;
+  overflow-wrap: normal;
 }

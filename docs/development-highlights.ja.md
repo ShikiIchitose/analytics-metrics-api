@@ -305,6 +305,27 @@ UI 側に業務ロジックを持たせず、既存 API contract をそのまま
 **示せるスキル**  
 FastAPI demo surfacing, static asset iteration, browser-based API inspection, plain JavaScript UI wiring, resource-oriented UI composition, backward-compatible frontend extension, documentation hygiene, CSS, CI/CD
 
+### 2026/3/25 — デモUIの入力制御と metric validation の改善
+
+**概要**  
+browser demo UI における `group_by` の選択肢制御を見直し、各 metric が実際に受け付ける grouping だけを UI 上で選べるようにしました。  
+あわせて backend 側でも unsupported な metric / grouping の組み合わせに対する 422 detail を改善し、`new_users` や `conversion_rate` で不正な `group_by` が指定された場合に、次に取るべき操作が分かる案内付きのエラーメッセージを返すようにしました。さらに、demo UI のフォーム幅や table 表示など、小さな browser-facing layout も調整しています。
+
+**この更新の意図**  
+今回の目的は、新しい API surface を増やすことではなく、既存 contract をより分かりやすく・触りやすくすることにあります。  
+thin browser demo の方針は維持したまま、frontend 側では不正な選択を事前に減らし、backend 側では API を直接呼んだ場合にも説明的なエラーを返すようにしました。これにより、UI の使いやすさと API contract の明示性を両立し、既存 resource を壊さずに公開品質を一段整えています。
+
+**見てほしい点**
+
+- metric ごとに `group_by` の選択肢を制御し、UI 上で unsupported な組み合わせを選びにくくしていること
+- backend 側では unsupported な `group_by` に対して、汎用エラーではなく metric-specific な guidance を返していること
+- browser demo の改善を、既存 API contract を変えずに frontend / validation の調整で行っていること
+- table / form layout の小さな修正も含め、公開デモの操作性を継続的に整えていること
+- endpoint の追加だけでなく、validation・error message・demo UX の改善もテストと一緒に進めていること
+
+**示せるスキル**  
+API validation design, error-handling refinement, frontend-backend contract alignment, plain JavaScript UI control, browser demo polish, maintainability, testing
+
 ---
 
 ## この文書で見ていただきたいポイント
