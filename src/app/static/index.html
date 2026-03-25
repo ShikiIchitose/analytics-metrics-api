@@ -21,11 +21,12 @@
         <section class="card" aria-labelledby="metric-runner-title">
             <h2 id="metric-runner-title">Metric runner</h2>
 
-            <form id="metric-form" class="form-grid">
+            <form id="metric-form" class="form-grid metric-form-grid">
                 <label for="metric">
                     Metric
-                    <select id="metric" name="metric">
-                        <option value="dau" selected>dau</option>
+                    <select id="metric" name="metric" class="pull-down">
+                        <option value="" selected>--choose KPI--</option>
+                        <option value="dau" >dau</option>
                         <option value="new_users">new_users</option>
                         <option value="conversion_rate">conversion_rate</option>
                     </select>
@@ -43,7 +44,7 @@
 
                 <label for="group_by">
                     Group by
-                    <select id="group_by" name="group_by">
+                    <select id="group_by" name="group_by" class="pull-down">
                         <option value="">(empty)</option>
                         <option value="day" selected>day</option>
                         <option value="country">country</option>
@@ -91,10 +92,9 @@
 
         <section class="card" aria-labelledby="user-lookup-title">
             <h2 id="user-lookup-title">User lookup</h2>
-
-            <form id="user-form" class="form-grid">
-                <label for="user_id">
-                    User ID
+            <label>User ID</label>
+            <form id="user-form" class="form-grid user-form-inline">
+                <label for="user_id" class="user-id-field">
                     <input id="user_id" name="user_id" type="number" min="1" step="1" value="42" required />
                 </label>
 
@@ -136,7 +136,11 @@
             <div class="card-section">
                 <h3 class="section-title">Job runs</h3>
 
-                <form id="job-runs-form" class="form-grid">
+                <p class="lead">
+                    job-run listing
+                </p>
+
+                <form id="job-runs-form" class="form-grid job-form-grid">
                     <label for="job_runs_start">
                         Start date
                         <input id="job_runs_start" name="start" type="date" value="2026-01-01" required />
@@ -155,12 +159,17 @@
 
                     <label for="job_runs_job_name">
                         Job name
-                        <input id="job_runs_job_name" name="job_name" type="text" value="" placeholder="(optional)" />
+                        <select id="job_runs_job_name" name="job_name"  class="pull-down">
+                            <option value="" selected>All</option>
+                            <option value="daily_ingest">daily_ingest</option>
+                            <option value="billing_summary_build">billing_summary_build</option>
+                            <option value="feature_refresh">feature_refresh</option>
+                        </select>
                     </label>
 
                     <label for="job_runs_status">
                         Status
-                        <select id="job_runs_status" name="status">
+                        <select id="job_runs_status" name="status" class="pull-down">
                             <option value="" selected>(empty)</option>
                             <option value="success">success</option>
                             <option value="failed">failed</option>
@@ -198,10 +207,18 @@
             <div class="card-section">
                 <h3 class="section-title">Job summary</h3>
 
-                <form id="job-summary-form" class="form-grid">
+                <p class="lead">
+                    one-job summary lookup
+                </p>
+
+                <form id="job-summary-form" class="form-grid job-sum-form-grid">
                     <label for="job_summary_job_name">
                         Job name
-                        <input id="job_summary_job_name" name="job_name" type="text" value="feature_refresh" required />
+                        <select id="job_summary_job_name" name="job_name"  class="pull-down">
+                            <option value="daily_ingest">daily_ingest</option>
+                            <option value="billing_summary_build">billing_summary_build</option>
+                            <option value="feature_refresh" selected>feature_refresh</option>
+                        </select>
                     </label>
 
                     <label for="job_summary_start">

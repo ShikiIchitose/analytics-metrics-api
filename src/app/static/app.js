@@ -1,6 +1,8 @@
 "use strict";
 
 const metricForm = document.getElementById("metric-form");
+const metricSelect = document.getElementById("metric");
+const metricGroupBySelect = document.getElementById("group_by");
 const metricRequest = document.getElementById("metric-request");
 const metricStatus = document.getElementById("metric-status");
 const metricWarnings = document.getElementById("metric-warnings");
@@ -25,6 +27,53 @@ const jobSummaryStatus = document.getElementById("job-summary-status");
 const jobSummaryResult = document.getElementById("job-summary-result");
 const jobSummaryRaw = document.getElementById("job-summary-raw");
 
+function groupByOptionsForMetric(metric) {
+  if (metric === "") {
+    return [{ value: "init", label: "--waiting KPI--" }];
+  }
+
+  if (metric === "dau") {
+    return [
+      { value: "day", label: "day" },
+      { value: "country", label: "country" },
+      { value: "plan", label: "plan" },
+    ];
+  }
+
+  if (metric === "new_users") {
+    return [{ value: "day", label: "day" }];
+  }
+
+  if (metric === "conversion_rate") {
+    return [{ value: "", label: "(empty)" }];
+  }
+
+  return [];
+}
+
+function syncMetricGroupByOptions() {
+  const metric = metricSelect.value;
+  const options = groupByOptionsForMetric(metric);
+  const previousValue = metricGroupBySelect.value;
+
+  metricGroupBySelect.innerHTML = "";
+
+  for (const item of options) {
+    const option = document.createElement("option");
+    option.value = item.value;
+    option.textContent = item.label;
+    metricGroupBySelect.appendChild(option);
+  }
+
+  const stillAvailable = options.some((item) => item.value === previousValue);
+  metricGroupBySelect.value = stillAvailable
+    ? previousValue
+    : (options[0]?.value ?? "init");
+}
+
+metricSelect.addEventListener("change", syncMetricGroupByOptions);
+syncMetricGroupByOptions();
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -38,9 +87,18 @@ function formatValue(value) {
   if (value === null || value === undefined) {
     return "";
   }
+
   if (typeof value === "object") {
     return JSON.stringify(value);
   }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || Number.isInteger(value)) {
+      return String(value);
+    }
+    return String(Number(value.toFixed(4)));
+  }
+
   return String(value);
 }
 
