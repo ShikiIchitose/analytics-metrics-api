@@ -173,6 +173,7 @@ def test_jobs_endpoints_return_503_when_job_runs_dataset_missing(
     assert r2.status_code == 503
     assert r2.json()["detail"] == "job_runs dataset not available"
 
+
 def test_new_users_rejects_country_group_by(client):
     r = client.get(
         "/metrics/new_users?start=2026-01-01&end=2026-01-07&group_by=country"
@@ -181,7 +182,7 @@ def test_new_users_rejects_country_group_by(client):
     assert (
         r.json()["detail"]
         == "new_users supports only group_by=day; got group_by='country'. "
-           "Try group_by=day, or omit group_by to use the default day grouping."
+        "Try group_by=day, or omit group_by to use the default day grouping."
     )
 
 
@@ -193,6 +194,6 @@ def test_conversion_rate_rejects_group_by_with_guidance(client):
     assert (
         r.json()["detail"]
         == "conversion_rate does not support group_by; got group_by='day'. "
-           "Remove group_by (use empty in the demo UI), or choose dau/new_users "
-           "if you want grouped output."
+        "Remove group_by (use empty in the demo UI), or choose dau/new_users "
+        "if you want grouped output."
     )
