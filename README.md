@@ -1,5 +1,9 @@
 # analytics-metrics-api
 
+[![CI](https://github.com/ShikiIchitose/analytics-metrics-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ShikiIchitose/analytics-metrics-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ShikiIchitose/analytics-metrics-api?sort=semver&display_name=tag)](https://github.com/ShikiIchitose/analytics-metrics-api/releases/latest)
+[![License](https://img.shields.io/github/license/ShikiIchitose/analytics-metrics-api)](LICENSE)
+
 > 日本語版: [README.ja.md](README.ja.md)
 
 An offline-first analytics Metrics API built with FastAPI, DuckDB, and Parquet.

@@ -1,5 +1,9 @@
 # analytics-metrics-api
 
+[![CI](https://github.com/ShikiIchitose/analytics-metrics-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ShikiIchitose/analytics-metrics-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ShikiIchitose/analytics-metrics-api?sort=semver&display_name=tag)](https://github.com/ShikiIchitose/analytics-metrics-api/releases/latest)
+[![License](https://img.shields.io/github/license/ShikiIchitose/analytics-metrics-api)](LICENSE)
+
 FastAPI・DuckDB・Parquet で構成した、offline-first な product analytics Metrics API です。
 
 ## 概要
